@@ -1,0 +1,267 @@
+// 🕌 روابط الأقسام الرئيسية للموقع
+export const categoriesLinks = [
+    {
+        name: "إمساكية شهر رمضان",
+        path: "/calendar",
+        img: "/categories/mosque.webp",
+        description: "احصل على إمساكية شهر رمضان مع مواقيت الصلاة اليومية.",
+        new: true,
+        ramadan: true,
+    },
+    {
+        name: "يومي في رمضان",
+        path: "/list-ramadan",
+        img: "/categories/list.webp",
+        description: "اكتشف محتوى يومي مميز خلال شهر رمضان المبارك.",
+        new: true,
+        ramadan: true,
+    },
+    {
+        name: "أسئلة دينية",
+        path: "/quiz",
+        img: "/categories/quiz.webp",
+        description: "اختبر معلوماتك الدينية مع أسئلة متنوعة وممتعة.",
+        new: true,
+        ramadan: false,
+    },
+    {
+        name: "أداة الباحث في الحديث",
+        path: "/search/-",
+        img: "/categories/search.webp",
+        description: "ابحث عن الحديث المطلوب بسهولة ودقة.",
+        new: true,
+        ramadan: false,
+    },
+    {
+        name: "أسماء الله الحسنى",
+        path: "/names",
+        img: "/categories/allah.webp",
+        description: "اكتشف أسماء الله الحسنى وتعاليمها.",
+        new: true,
+        ramadan: false,
+    },
+    {
+        name: "قسم القرآن الكريم",
+        path: "/qaran",
+        img: "/categories/qaran.webp",
+        description: "استعرض القرآن الكريم بأسلوب مبسط وسهل.",
+        new: false,
+        ramadan: false,
+    },
+    {
+        name: "قسم تفسير القرآن",
+        path: "/tafsir",
+        img: "/categories/unnamed.webp",
+        description: "اقرأ تفسيرات القرآن الكريم من أفضل المفسرين.",
+        new: false,
+        ramadan: false,
+    },
+    {
+        name: "قسم الحديث",
+        path: "/adiths",
+        img: "/categories/adith.webp",
+        description: "اطلع على الأحاديث النبوية الشريفة والمصادقة.",
+        new: false,
+        ramadan: false,
+    },
+    {
+        name: "أوقات الصلاة والمناسبات الإسلامية",
+        path: "/salah",
+        img: "/categories/Salah.webp",
+        description: "تعرف على مواقيت الصلاة والمناسبات الإسلامية المهمة.",
+        new: false,
+        ramadan: false,
+    },
+    {
+        name: "قسم الأدعية والأذكار",
+        path: "/azekar",
+        img: "/categories/azekar.webp",
+        description: "اكتشف أجمل الأدعية والأذكار اليومية والمأثورة.",
+        new: false,
+        ramadan: false,
+    },
+    {
+        name: "قسم التسبيح",
+        path: "/tasbih",
+        img: "/categories/tasbih.webp",
+        description: "استخدم أداة التسبيح لتحسين ذكرك وتسبيحك لله.",
+        new: false,
+        ramadan: false,
+    },
+    {
+        name: "قسم الاقتباسات",
+        path: "/quotes",
+        img: "/categories/quotes.webp",
+        description: "استمتع بأروع الاقتباسات الإسلامية والحكم النافعة.",
+        new: false,
+        ramadan: false,
+    },
+    {
+        name: "قسم الكتب",
+        path: "/books/1",
+        img: "/categories/books.webp",
+        description: "اقرأ أفضل الكتب الإسلامية والدينية المختارة.",
+        new: false,
+        ramadan: false,
+    },
+    {
+        name: "قسم المقالات",
+        path: "/articles/1",
+        img: "/categories/articles.webp",
+        description: "تصفح مقالات دينية وثقافية متنوعة ومفيدة.",
+        new: false,
+        ramadan: false,
+    },
+    {
+        name: "قسم الخطب",
+        path: "/khotab/1",
+        img: "/categories/khotab.webp",
+        description: "استمع إلى خطب إسلامية قيمة وموعظة حسنة.",
+        new: false,
+        ramadan: false,
+    },
+    {
+        name: "قسم الفتاوى",
+        path: "/fatwa/1",
+        img: "/categories/fatwa.webp",
+        description: "احصل على إجابات شرعية لأسئلتك الدينية والفقهية.",
+        new: false,
+        ramadan: false,
+    },
+    {
+        name: "قسم المحاضرات الصوتية",
+        path: "/audios/1",
+        img: "/categories/audios.webp",
+        description: "استمع إلى محاضرات صوتية دينية من علماء موثوقين.",
+        new: false,
+        ramadan: false,
+    },
+    {
+        name: "قسم المحاضرات المرئية",
+        path: "/videos/1",
+        img: "/categories/videos.webp",
+        description: "شاهد محاضرات ودروس إسلامية بصيغة فيديو مفيدة.",
+        new: false,
+        ramadan: false,
+    },
+    {
+        name: "ما لا يسع أطفال المسلمين جهله",
+        path: "/children",
+        img: "/categories/children.webp",
+        description: "علم أطفالك أساسيات الدين بطريقة سهلة وشيقة.",
+        new: true,
+        ramadan: false,
+    },
+    {
+        name: "زكاة المال",
+        path: "/zakat",
+        img: "/categories/zakat.webp",
+        description: "احسب وادفع زكاتك بسهولة مع شرح كامل للأحكام.",
+        new: true,
+        ramadan: false,
+    },
+];
+
+// 🏠 روابط التصفّح العامة (القائمة الرئيسية)
+export const links = [
+    {
+        name: "الصفحة الرئيسية",
+        path: "/",
+    },
+    {
+        name: "القرآن الكريم",
+        path: "/qaran",
+    },
+    {
+        name: "تفسير القرآن",
+        path: "/tafsir",
+    },
+    {
+        name: "الحديث الشريف",
+        path: "/adiths",
+    },
+    {
+        name: "الأدعية والأذكار",
+        path: "/azekar",
+    },
+    {
+        name: "الاقتباسات",
+        path: "/quotes",
+    },
+];
+
+// 📚 روابط الأقسام القرآنية والإيمانية
+export const links1 = [
+    {
+        name: "قسم القرآن الكريم",
+        path: "/qaran",
+    },
+    {
+        name: "قسم تفسير القرآن",
+        path: "/tafsir",
+    },
+    {
+        name: "أسماء الله الحسنى",
+        path: "/names",
+    },
+    {
+        name: "قسم الحديث",
+        path: "/adiths",
+    },
+    {
+        name: "قسم الأدعية والأذكار",
+        path: "/azekar",
+    },
+    {
+        name: "قسم الاقتباسات",
+        path: "/quotes",
+    },
+];
+
+// 📖 روابط المحتوى العلمي والثقافي
+export const links2 = [
+    {
+        name: "قسم الكتب",
+        path: "/books/1",
+    },
+    {
+        name: "قسم المقالات",
+        path: "/articles/1",
+    },
+    {
+        name: "قسم الخطب",
+        path: "/khotab/1",
+    },
+    {
+        name: "قسم الفتاوى",
+        path: "/fatwa/1",
+    },
+    {
+        name: "قسم المحاضرات الصوتية",
+        path: "/audios/1",
+    },
+    {
+        name: "قسم المحاضرات المرئية",
+        path: "/videos/1",
+    },
+];
+
+// 🕋 روابط الأدوات والخدمات الإضافية
+export const links3 = [
+    {
+        name: "قسم التسبيح",
+        path: "/tasbih",
+    },
+    {
+        name: "أوقات الصلاة",
+        path: "/salah",
+    },
+    {
+        name: "أداة الباحث في الحديث",
+        path: "/search",
+    },
+    {
+        name: "ما لا يسع أطفال المسلمين جهله",
+        path: "/children",
+    },
+];
