@@ -30,7 +30,6 @@ export default function Tafsir() {
                      عدد الآيات: {item.numberOfAyahs}
                 </span>
             </div>
-            <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-orange-500 to-lime-400 transform -translate-x-full group-hover:translate-x-0 transition-transform duration-500"></div>
         </Link>
     ));
 
@@ -62,10 +61,10 @@ export default function Tafsir() {
             <div className="max-w-7xl mx-auto">
                 <div className="text-center mb-12">
                     <h1 className="text-4xl font-bold text-gray-800 dark:text-white mb-4">
-                        تفسير القرآن الكريم
+                        قراءة القرآن الكريم
                     </h1>
                     <p className="text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-                        اختر السورة التي تود قراءة تفسيرها من قائمة السور القرآنية أدناه
+                        اختر السورة التي تود  قرائتها و قراءة تفسيرها من قائمة السور القرآنية أدناه
                     </p>
                 </div>
 

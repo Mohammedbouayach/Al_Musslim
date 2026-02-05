@@ -19,7 +19,7 @@ export const categoriesLinks = [
     {
         name: "أسئلة دينية",
         path: "/quiz",
-        img: "/categories/quiz.webp",
+        img: "/categories/quiz.png",
         description: "اختبر معلوماتك الدينية مع أسئلة متنوعة وممتعة.",
         new: true,
         ramadan: false,
@@ -27,7 +27,7 @@ export const categoriesLinks = [
     {
         name: "أداة الباحث في الحديث",
         path: "/search/-",
-        img: "/categories/search.webp",
+        img: "/categories/search.png",
         description: "ابحث عن الحديث المطلوب بسهولة ودقة.",
         new: true,
         ramadan: false,
@@ -35,7 +35,7 @@ export const categoriesLinks = [
     {
         name: "أسماء الله الحسنى",
         path: "/names",
-        img: "/categories/allah.webp",
+        img: "/categories/allah.png",
         description: "اكتشف أسماء الله الحسنى وتعاليمها.",
         new: true,
         ramadan: false,
@@ -43,23 +43,16 @@ export const categoriesLinks = [
     {
         name: "قسم القرآن الكريم",
         path: "/qaran",
-        img: "/categories/qaran.webp",
+        img: "/categories/qaran.png",
         description: "استعرض القرآن الكريم بأسلوب مبسط وسهل.",
         new: false,
         ramadan: false,
     },
-    {
-        name: "قسم تفسير القرآن",
-        path: "/tafsir",
-        img: "/categories/unnamed.webp",
-        description: "اقرأ تفسيرات القرآن الكريم من أفضل المفسرين.",
-        new: false,
-        ramadan: false,
-    },
+
     {
         name: "قسم الحديث",
         path: "/adiths",
-        img: "/categories/adith.webp",
+        img: "/categories/adith.png",
         description: "اطلع على الأحاديث النبوية الشريفة والمصادقة.",
         new: false,
         ramadan: false,
@@ -67,7 +60,7 @@ export const categoriesLinks = [
     {
         name: "أوقات الصلاة والمناسبات الإسلامية",
         path: "/salah",
-        img: "/categories/Salah.webp",
+        img: "/categories/Salah.png",
         description: "تعرف على مواقيت الصلاة والمناسبات الإسلامية المهمة.",
         new: false,
         ramadan: false,
@@ -75,7 +68,7 @@ export const categoriesLinks = [
     {
         name: "قسم الأدعية والأذكار",
         path: "/azekar",
-        img: "/categories/azekar.webp",
+        img: "/categories/azekar.png",
         description: "اكتشف أجمل الأدعية والأذكار اليومية والمأثورة.",
         new: false,
         ramadan: false,
@@ -83,7 +76,7 @@ export const categoriesLinks = [
     {
         name: "قسم التسبيح",
         path: "/tasbih",
-        img: "/categories/tasbih.webp",
+        img: "/categories/tasbih.png",
         description: "استخدم أداة التسبيح لتحسين ذكرك وتسبيحك لله.",
         new: false,
         ramadan: false,
@@ -91,7 +84,7 @@ export const categoriesLinks = [
     {
         name: "قسم الاقتباسات",
         path: "/quotes",
-        img: "/categories/quotes.webp",
+        img: "/categories/quotes.png",
         description: "استمتع بأروع الاقتباسات الإسلامية والحكم النافعة.",
         new: false,
         ramadan: false,
@@ -99,7 +92,7 @@ export const categoriesLinks = [
     {
         name: "قسم الكتب",
         path: "/books/1",
-        img: "/categories/books.webp",
+        img: "/categories/books.png",
         description: "اقرأ أفضل الكتب الإسلامية والدينية المختارة.",
         new: false,
         ramadan: false,
@@ -107,7 +100,7 @@ export const categoriesLinks = [
     {
         name: "قسم المقالات",
         path: "/articles/1",
-        img: "/categories/articles.webp",
+        img: "/categories/articles.png",
         description: "تصفح مقالات دينية وثقافية متنوعة ومفيدة.",
         new: false,
         ramadan: false,
@@ -115,7 +108,7 @@ export const categoriesLinks = [
     {
         name: "قسم الخطب",
         path: "/khotab/1",
-        img: "/categories/khotab.webp",
+        img: "/categories/khotab.png",
         description: "استمع إلى خطب إسلامية قيمة وموعظة حسنة.",
         new: false,
         ramadan: false,
@@ -123,7 +116,7 @@ export const categoriesLinks = [
     {
         name: "قسم الفتاوى",
         path: "/fatwa/1",
-        img: "/categories/fatwa.webp",
+        img: "/categories/fatwa.png",
         description: "احصل على إجابات شرعية لأسئلتك الدينية والفقهية.",
         new: false,
         ramadan: false,
@@ -131,7 +124,7 @@ export const categoriesLinks = [
     {
         name: "قسم المحاضرات الصوتية",
         path: "/audios/1",
-        img: "/categories/audios.webp",
+        img: "/categories/audios.png",
         description: "استمع إلى محاضرات صوتية دينية من علماء موثوقين.",
         new: false,
         ramadan: false,
@@ -139,27 +132,27 @@ export const categoriesLinks = [
     {
         name: "قسم المحاضرات المرئية",
         path: "/videos/1",
-        img: "/categories/videos.webp",
+        img: "/categories/videos.png",
         description: "شاهد محاضرات ودروس إسلامية بصيغة فيديو مفيدة.",
         new: false,
         ramadan: false,
     },
-    {
-        name: "ما لا يسع أطفال المسلمين جهله",
-        path: "/children",
-        img: "/categories/children.webp",
-        description: "علم أطفالك أساسيات الدين بطريقة سهلة وشيقة.",
-        new: true,
-        ramadan: false,
-    },
-    {
-        name: "زكاة المال",
-        path: "/zakat",
-        img: "/categories/zakat.webp",
-        description: "احسب وادفع زكاتك بسهولة مع شرح كامل للأحكام.",
-        new: true,
-        ramadan: false,
-    },
+    // {
+    //     name: "ما لا يسع أطفال المسلمين جهله",
+    //     path: "/children",
+    //     img: "/categories/children.webp",
+    //     description: "علم أطفالك أساسيات الدين بطريقة سهلة وشيقة.",
+    //     new: true,
+    //     ramadan: false,
+    // },
+    // {
+    //     name: "زكاة المال",
+    //     path: "/zakat",
+    //     img: "/categories/zakat.webp",
+    //     description: "احسب وادفع زكاتك بسهولة مع شرح كامل للأحكام.",
+    //     new: true,
+    //     ramadan: false,
+    // },
 ];
 
 // 🏠 روابط التصفّح العامة (القائمة الرئيسية)
@@ -173,8 +166,8 @@ export const links = [
         path: "/qaran",
     },
     {
-        name: "تفسير القرآن",
-        path: "/tafsir",
+        name: "أوقات الصلاة",
+        path: "/salah",
     },
     {
         name: "الحديث الشريف",
@@ -197,10 +190,6 @@ export const links1 = [
         path: "/qaran",
     },
     {
-        name: "قسم تفسير القرآن",
-        path: "/tafsir",
-    },
-    {
         name: "أسماء الله الحسنى",
         path: "/names",
     },
@@ -215,6 +204,10 @@ export const links1 = [
     {
         name: "قسم الاقتباسات",
         path: "/quotes",
+    },
+      {
+        name: "قسم التسبيح",
+        path: "/tasbih",
     },
 ];
 

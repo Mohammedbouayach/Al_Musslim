@@ -6,7 +6,7 @@ export default function _() {
     return (
         <>
             <Suspense>
-                <Salah />
+             <Salah />
             </Suspense>
             <EventsTimer />
         </>

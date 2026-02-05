@@ -4,7 +4,7 @@ import Landing from "@/components/Layout/Landing";
 import Tafsir from "@/components/Tafsir/Tafsir";
 
 export const metadata = {
-    title: 'موقع موعظه | قسم تفسير القران الكريم',
+    title: 'موقع المسلم | قسم تفسير القران الكريم',
     description: 'يحتوي هذا القسم علي تفسير القران بالكامل وعرض جميع معلومات السوره',
 }
 
