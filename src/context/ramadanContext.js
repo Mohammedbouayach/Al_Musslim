@@ -5,7 +5,7 @@ import useSWR from 'swr';
 const ramadanContext = createContext(null);
 
 export const RamadanProvider = ({ children }) => {
-    const [ramadan, setRamadan] = useState(true);
+    const [ramadan, setRamadan] = useState(false);
     const { data, error, isLoading } = useSWR(`https://api.aladhan.com/v1/currentIslamicMonth`);
     useEffect(() => {
         // شهر رمضان هو الشهر التاسع في التقويم الهجري

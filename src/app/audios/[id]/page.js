@@ -27,7 +27,7 @@ import Link from "next/link";
 import Image from "next/image";
 
 export const metadata = {
-    title: "موقع موعظه | المحاضرات الصوتيه ",
+    title: "المسلم | المحاضرات الصوتيه ",
 };
 
 // دالة لتحويل الطابع الزمني إلى تاريخ مقروء

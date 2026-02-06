@@ -18,6 +18,19 @@ const islamicEvents = [
 
 export default function EventsTimer() {
     const [eventsTimeLeft, setEventsTimeLeft] = useState([]);
+    const [hijriToday, setHijriToday] = useState('');
+
+useEffect(() => {
+    const updateHijriDate = () => {
+        const todayHijri = moment().format('iD iMMMM iYYYY'); // اليوم، الشهر، السنة الهجرية
+        setHijriToday(todayHijri);
+    };
+
+    updateHijriDate(); // تعيين فورًا
+    const hijriInterval = setInterval(updateHijriDate, 60 * 1000); // تحديث كل دقيقة
+
+    return () => clearInterval(hijriInterval);
+}, []);
 
     useEffect(() => {
         const calculateTimeLeft = (eventDate) => {
@@ -86,8 +99,15 @@ export default function EventsTimer() {
                 <div className="absolute bottom-20 right-1/3 w-64 h-64 bg-pink-500 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob animation-delay-4000 z-0"></div> */}
 
                 <div className="container mx-auto max-w-7xl relative z-10">
+                    
                     <div className="text-center mb-16">
-                        <h2 className="text-4xl font-bold text-white mb-4 relative inline-block">
+                       <h3 className="w-1/2 mx-auto mb-12 px-6 py-3 text-center text-xl font-medium rounded-xl 
+               bg-gradient-to-r from-orange-400 to-yellow-300 
+               text-white shadow-md dark:from-orange-600 dark:to-orange-500 dark:text-gray-100">
+                     اليوم الهجري: {hijriToday}
+                        </h3>
+
+                        <h2 className="text-4xl font-bold text-amber-500 mb-4 relative inline-block">
                             المناسبات الإسلامية القادمة
                             <span className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-yellow-400 to-amber-500 rounded-full"></span>
                         </h2>

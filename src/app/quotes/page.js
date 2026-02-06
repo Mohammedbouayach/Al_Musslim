@@ -4,7 +4,7 @@ import Landing from "@/components/Layout/Landing";
 import Quotes from "@/components/Quote/Quotes";
 
 export const metadata = {
-    title: "موقع موعظه | قسم الاقتباسات",
+    title: "المسلم | قسم الاقتباسات",
     description: "يحتوي هذا القسم علي اقتباسات للائمه والعلماء",
 };
 

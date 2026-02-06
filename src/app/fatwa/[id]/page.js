@@ -26,7 +26,7 @@ import Link from "next/link";
 import Image from "next/image";
 
 export const metadata = {
-    title: "موقع موعظه | الفتاوي ",
+    title: "المسلم | الفتاوي ",
 };
 
 // دالة لتحويل الطابع الزمني إلى تاريخ مقروء

@@ -24,7 +24,7 @@ import Link from "next/link";
 import Image from "next/image";
 
 export const metadata = {
-    title: "موقع موعظه | خطب ",
+    title: "المسلم | خطب ",
 };
 
 // دالة لتحويل الطابع الزمني إلى تاريخ مقروء

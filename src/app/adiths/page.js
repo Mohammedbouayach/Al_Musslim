@@ -4,7 +4,7 @@ import Landing from "@/components/Layout/Landing";
 import CategoriesAdith from "@/components/Adith/CategoriesAdith";
 
 export const metadata = {
-    title: "موقع موعظه | قسم الاحاديث",
+    title: "المسلم | قسم الاحاديث",
     description: "يحتوي هذا القسم علي اكتر من 3500 من الأحاديث النبوية مع عرض جميع معلومات الحديث",
 };
 

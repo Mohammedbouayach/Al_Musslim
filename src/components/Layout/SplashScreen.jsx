@@ -47,7 +47,7 @@ export default function SplashScreen() {
 
             {/* Quranic Verse */}
             <p className="text-gray-700 dark:text-gray-300 text-lg mb-6 text-center animate-fade-in-up">
-                الالمسلم نور، يحيي القلوب ويضيء الحياة
+             المسلم خيرٌ لمن نفعه وخيرٌ له من نفسه    
             </p>
 
             {/* Progress Bar */}

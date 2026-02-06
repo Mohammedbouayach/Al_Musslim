@@ -6,11 +6,16 @@ import { useEffect, useState } from "react";
 import Headroom from "react-headroom";
 import { links } from "../../data/links";
 import { useRamadan } from "@/context/ramadanContext";
+import { usePathname } from "next/navigation";
+
+
 
 export default function Navbar() {
     const { ramadan } = useRamadan();
     const [isOpen, setIsOpen] = useState(false);
     const [scrolled, setScrolled] = useState(false);
+    const pathname = usePathname();
+
 
     // تأثير التمرير
     useEffect(() => {
@@ -64,24 +69,32 @@ export default function Navbar() {
 
                             {/* قائمة سطح المكتب */}
                             <div className="hidden lg:flex items-center space-x-4">
-                                <div className="flex items-center gap-2 md:gap-4 flex-wrap justify-center">
-                                    {links.map((item, index) => (
+                          <div className="flex items-center gap-2 md:gap-4 flex-wrap justify-center">
+                                {links.map((item, index) => {
+                                    const isActive = pathname === item.path;
+
+                                    return (
                                         <Link
                                             key={index}
                                             href={item.path}
-                                            className="relative px-4 py-2.5 text-sm font-semibold rounded-xl overflow-hidden transition-all duration-300
-                                        text-gray-700 dark:text-white hover:text-white
-                                        before:absolute before:inset-0 before:rounded-xl
-                                        before:bg-gradient-to-r before:from-orange-500 before:to-lime-500
-                                        before:opacity-0 before:scale-x-0 before:origin-right
-                                        hover:before:opacity-100 hover:before:scale-x-100
-                                        before:transition-all before:duration-500
-                                        hover:shadow-sm dark:shadow-none"
+                                            className={`relative px-4 py-2.5 text-sm font-semibold rounded-xl overflow-hidden transition-all duration-300
+                                                ${isActive ? "text-orange-600 dark:text-orange-400 shadow-sm" : "text-gray-700 dark:text-white hover:text-orange-600 dark:hover:text-orange-400"}
+                                                before:absolute before:inset-0 before:rounded-xl
+ 0                                               before:bg-gradient-to-r before:from-orange-50/2 before:to-orange-50/2
+                                                before:transition-all before:duration-500
+                                                ${
+                                                    isActive
+                                                        ? "before:opacity-100 before:scale-x-100 before:origin-left"
+                                                        : "before:opacity-0 before:scale-x-0 before:origin-right hover:before:opacity-100 hover:before:scale-x-100"
+                                                }
+                                            `}
                                         >
                                             <span className="relative z-10">{item.name}</span>
                                         </Link>
-                                    ))}
+                                    );
+                                                    })}
                                 </div>
+
 
 
                                 {/* <div className="flex items-center space-x-3 mr-2">
@@ -98,7 +111,7 @@ export default function Navbar() {
                             {/* زر القائمة للهاتف */}
                             <button
                                 onClick={toggleMenu}
-                                className="lg:hidden relative w-12 h-12 flex items-center justify-center rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-lime-500"
+                                className="lg:hidden relative w-12 h-12 flex items-center justify-center rounded-xl bg-orange-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-orange-500"
                                 aria-label="Toggle navigation menu"
                                 aria-expanded={isOpen}
                             >
@@ -138,29 +151,27 @@ export default function Navbar() {
                                         />
                                     </div>
                                 </div>
-                                <span className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-lime-600 to-orange-700 dark:from-lime-400 dark:to-orange-500">موقعك</span>
                             </div>
-                            <button
-                                onClick={() => setIsOpen(false)}
-                                className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200"
-                                aria-label="Close menu"
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                            </button>
+                         
                         </div>
 
                         {/* محتوى القائمة الجانبية */}
-                        <div className="flex-1 overflow-y-auto p-6">
-                            <ul className="space-y-2">
+                        <div className="flex-1 overflow-y-auto p-6 mt-4">
+                            <ul className="space-y-4">
                                 {links.map((item, index) => (
                                     <li key={index}>
                                         <Link
                                             onClick={() => setIsOpen(false)}
                                             href={item.path}
-                                            className="flex items-center px-4 py-3 text-lg font-medium rounded-lg text-gray-700 dark:text-gray-200 hover:bg-lime-50 dark:hover:bg-gray-800 hover:text-lime-600 dark:hover:text-lime-400 transition-all duration-300 group"
+                                            className={`flex items-center px-4 py-3 text-lg font-medium rounded-lg transition-all duration-300 group
+                                                ${
+                                                    pathname === item.path
+                                                        ? "bg-orange-50 text-orange-600 dark:bg-gray-800 dark:text-orange-400"
+                                                        : "text-gray-700 dark:text-gray-200 hover:bg-lime-50 dark:hover:bg-gray-800 hover:text-lime-600 dark:hover:text-lime-400"
+                                                }
+                                            `}
                                         >
+
                                             <span className="relative z-10">{item.name}</span>
                                             <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-lime-500 to-orange-600 opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
                                         </Link>
@@ -170,16 +181,7 @@ export default function Navbar() {
                         </div>
 
                         {/* تذييل القائمة الجانبية */}
-                        <div className="p-6 border-t border-gray-200 dark:border-gray-800">
-                            <div className="flex flex-col space-y-3">
-                                <button className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-lime-500 to-orange-600 text-white font-medium hover:shadow-lg transition-all duration-300 transform hover:-translate-y-0.5">
-                                    تسجيل الدخول
-                                </button>
-                                <button className="w-full py-3 px-4 rounded-xl border border-lime-500 text-lime-600 dark:text-lime-400 font-medium hover:bg-lime-50 dark:hover:bg-gray-800 transition-all duration-300">
-                                    إنشاء حساب
-                                </button>
-                            </div>
-                        </div>
+                       
                     </div>
                 </div>
             </div>

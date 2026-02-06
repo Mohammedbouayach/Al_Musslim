@@ -4,7 +4,7 @@ import Landing from "@/components/Layout/Landing";
 import Articles from "@/components/Articles/Articles";
 
 export const metadata = {
-    title: "موقع موعظه | المقالات ",
+    title: "المسلم | المقالات ",
     description: "يحتوي هذا القسم علي اكثر من 1690 مقاله اسلامية",
 };
 

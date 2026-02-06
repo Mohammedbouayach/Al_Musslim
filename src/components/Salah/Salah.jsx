@@ -180,7 +180,7 @@ export default function Salah() {
             if (PositionErrorCallback.code === 1) {
                 try {
                     const response = await fetch(
-                        "https://api.aladhan.com/v1/timingsByCity?city=cairo&country=egypt"
+                        "https://api.aladhan.com/v1/timingsByCity?city=Casablanca&country=morocco"
                     );
                     const data = await response.json();
                     let timings = data.data.timings;
@@ -227,6 +227,7 @@ export default function Salah() {
     return (
         <>
             <Landing title="أوقات الصلاة" />
+            
             <ToastContainer />
             <section className="pt-15 mt-4 salah pb-5 relative">
                 <Image

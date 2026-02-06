@@ -5,7 +5,7 @@ import { faHeadphonesSimple, faMicrophoneLines, faBookQuran, faFilePen, faClipbo
 import Image from "next/image";
 
 export const metadata = {
-    title: "موقع موعظه | قسم القران الكريم",
+    title: "المسلم | قسم القران الكريم",
     description: "يحتوي هذا القسم علي جميع سور القران الكريم مع وضعين",
 };
 

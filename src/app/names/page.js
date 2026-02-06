@@ -3,7 +3,7 @@ import Landing from "@/components/Layout/Landing";
 import Name from "@/components/Names";
 
 export const metadata = {
-    title: "موقع موعظه | اسماء الله الحسني ",
+    title: "المسلم | اسماء الله الحسني ",
     description: "يحتوي هذا القسم علي اسماء الله الحسني ",
 };
 

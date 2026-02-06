@@ -6,7 +6,7 @@ import { Suspense } from "react";
 import Loader from "@/components/Layout/Loader";
 
 export const metadata = {
-    title: "موقع موعظه | قسم الاذكار والادعيه",
+    title: "المسلم | قسم الاذكار والادعيه",
     description: "يحتوي هذا القسم علي الكثير من الاذكار والادعيه المختلفه",
 };
 
