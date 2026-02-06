@@ -102,7 +102,7 @@ useEffect(() => {
                     
                     <div className="text-center mb-16">
                        <h3 className="w-1/2 mx-auto mb-12 px-6 py-3 text-center text-xl font-medium rounded-xl 
-               bg-gradient-to-r from-orange-400 to-yellow-300 
+               bg-gradient-to-r from-orange-500 to-yellow-300 
                text-white shadow-md dark:from-orange-600 dark:to-orange-500 dark:text-gray-100">
                      اليوم الهجري: {hijriToday}
                         </h3>

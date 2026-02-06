@@ -57,37 +57,64 @@ export default function Salah() {
     const [btnError, setBtnError] = useState(null);
     const [loadingScreen, setLoadingScreen] = useState(true);
 
+    const [notifiedPrayers, setNotifiedPrayers] = useState({}); // لتسجيل الصلوات التي تم إرسال إشعار لها
+
+    // طلب إذن الإشعارات مرة واحدة
+    useEffect(() => {
+        if ("Notification" in window) {
+            Notification.requestPermission().then(permission => {
+                if (permission !== "granted") {
+                    console.log("لم يتم السماح بالإشعارات");
+                }
+            });
+        }
+    }, []);
+
+    // دالة لإرسال إشعار الصلاة
+    const showPrayerNotification = (prayerName, prayerTime) => {
+        if (Notification.permission === "granted") {
+            navigator.serviceWorker.ready.then(registration => {
+                registration.showNotification(`حان وقت صلاة ${prayerName}`, {
+                    body: `الوقت: ${prayerTime}`,
+                    icon: "/img.png",
+                    tag: `prayer-${prayerName}`,
+                    renotify: true
+                });
+            });
+        }
+    };
+
     const setupPrayerCountdownTimer = () => {
         const momentNow = moment();
         let prayerIndex = 0;
         if (
-            momentNow.isAfter(moment(timings["Fajr"], "hh:mm")) &&
-            momentNow.isBefore(moment(timings["Dhuhr"], "hh:mm"))
+            momentNow.isAfter(moment(timings["Fajr"], "HH:mm")) &&
+            momentNow.isBefore(moment(timings["Dhuhr"], "HH:mm"))
         ) {
             prayerIndex = 1;
         } else if (
-            momentNow.isAfter(moment(timings["Dhuhr"], "hh:mm")) &&
-            momentNow.isBefore(moment(timings["Asr"], "hh:mm"))
+            momentNow.isAfter(moment(timings["Dhuhr"], "HH:mm")) &&
+            momentNow.isBefore(moment(timings["Asr"], "HH:mm"))
         ) {
             prayerIndex = 2;
         } else if (
-            momentNow.isAfter(moment(timings["Asr"], "hh:mm")) &&
-            momentNow.isBefore(moment(timings["Sunset"], "hh:mm"))
+            momentNow.isAfter(moment(timings["Asr"], "HH:mm")) &&
+            momentNow.isBefore(moment(timings["Sunset"], "HH:mm"))
         ) {
             prayerIndex = 3;
         } else if (
-            momentNow.isAfter(moment(timings["Sunset"], "hh:mm")) &&
-            momentNow.isBefore(moment(timings["Isha"], "hh:mm"))
+            momentNow.isAfter(moment(timings["Sunset"], "HH:mm")) &&
+            momentNow.isBefore(moment(timings["Isha"], "HH:mm"))
         ) {
             prayerIndex = 4;
         }
         setNextPrayerIndex(prayerIndex);
         const nextPrayerTime = timings[prayersArray[prayerIndex].key];
-        let remainingTime = moment(nextPrayerTime, "hh:mm").diff(momentNow);
+        let remainingTime = moment(nextPrayerTime, "HH:mm").diff(momentNow);
         if (prayerIndex === 0) {
             remainingTime =
-                moment("23:59:59", "hh:mm:ss").diff(momentNow) +
-                moment(nextPrayerTime, "hh:mm").diff(moment("00:00:00", "hh:mm:ss"));
+                moment("23:59:59", "HH:mm:ss").diff(momentNow) +
+                moment(nextPrayerTime, "HH:mm").diff(moment("00:00:00", "HH:mm:ss"));
         }
         const durationRemainingTime = moment.duration(remainingTime);
         setRemainingPrayerTime({
@@ -95,31 +122,44 @@ export default function Salah() {
             m: durationRemainingTime.minutes().toString().padStart(2, "0"),
             s: durationRemainingTime.seconds().toString().padStart(2, "0"),
         });
+
+        // إشعار عند وقت الصلاة
+        const nowHHMM = momentNow.format("HH:mm");
+        const currentPrayerName = prayersArray[prayerIndex].displayName;
+        if (nextPrayerTime === nowHHMM && !notifiedPrayers[currentPrayerName]) {
+            showPrayerNotification(currentPrayerName, nextPrayerTime);
+            setNotifiedPrayers(prev => ({ ...prev, [currentPrayerName]: true }));
+        }
+
+        // إعادة تعيين الإشعار للصلاة القادمة إذا انتقل الوقت
+        prayersArray.forEach(p => {
+            if (timings[p.key] !== nowHHMM && notifiedPrayers[p.displayName]) {
+                setNotifiedPrayers(prev => ({ ...prev, [p.displayName]: false }));
+            }
+        });
     };
 
     const setupRamadanCountdownTimer = () => {
         const momentNow = moment();
         let ramadanIndex = 0;
         if (
-            momentNow.isAfter(moment(timings["Lastthird"], "hh:mm")) &&
-            momentNow.isBefore(moment(timings["Imsak"], "hh:mm"))
+            momentNow.isAfter(moment(timings["Lastthird"], "HH:mm")) &&
+            momentNow.isBefore(moment(timings["Imsak"], "HH:mm"))
         ) {
             ramadanIndex = 1;
         } else if (
-            momentNow.isAfter(moment(timings["Imsak"], "hh:mm")) &&
-            momentNow.isBefore(moment(timings["Sunset"], "hh:mm"))
+            momentNow.isAfter(moment(timings["Imsak"], "HH:mm")) &&
+            momentNow.isBefore(moment(timings["Sunset"], "HH:mm"))
         ) {
             ramadanIndex = 2;
         }
         setNextRamadanIndex(ramadanIndex);
         const nextRamadanTime = timings[ramadanTimingsArray[ramadanIndex].key];
-        let remainingTime = moment(nextRamadanTime, "hh:mm").diff(momentNow);
+        let remainingTime = moment(nextRamadanTime, "HH:mm").diff(momentNow);
         if (ramadanIndex === 0) {
             remainingTime =
-                moment("23:59:59", "hh:mm:ss").diff(momentNow) +
-                moment(nextRamadanTime, "hh:mm").diff(
-                    moment("00:00:00", "hh:mm:ss")
-                );
+                moment("23:59:59", "HH:mm:ss").diff(momentNow) +
+                moment(nextRamadanTime, "HH:mm").diff(moment("00:00:00", "HH:mm:ss"));
         }
         const durationRemainingTime = moment.duration(remainingTime);
         setRemainingRamadanTime({
@@ -130,13 +170,14 @@ export default function Salah() {
     };
 
     useEffect(() => {
-        let interval = setInterval(() => {
+        const interval = setInterval(() => {
             setupPrayerCountdownTimer();
             if (ramadan) setupRamadanCountdownTimer();
         }, 1000);
         return () => clearInterval(interval);
-    }, [timings]);
+    }, [timings, notifiedPrayers]);
 
+    // جلب أوقات الصلاة من API أو الموقع الحالي
     useEffect(() => {
         setLoadingScreen(true);
         let date = new Date();
@@ -222,12 +263,9 @@ export default function Salah() {
         }
     }, [refreshGps]);
 
-
-
     return (
         <>
             <Landing title="أوقات الصلاة" />
-            
             <ToastContainer />
             <section className="pt-15 mt-4 salah pb-5 relative">
                 <Image
@@ -237,11 +275,10 @@ export default function Salah() {
                     className="absolute w-32 top-16 left-0 -z-40"
                     alt="img"
                 />
-
                 {loadingScreen ||
-                    (timings.Fajr === "00:00" &&
-                        timings.Asr === "00:00" &&
-                        timings.Isha === "00:00") ? (
+                (timings.Fajr === "00:00" &&
+                    timings.Asr === "00:00" &&
+                    timings.Isha === "00:00") ? (
                     <Loader />
                 ) : (
                     <>
