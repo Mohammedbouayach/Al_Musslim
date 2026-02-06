@@ -40,6 +40,8 @@ import {
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import Image from "next/image";
 import { useEffect, useState, useRef } from "react";
+import quotesData from "@/data/quotesAll.json";
+
 
 
 export default function Home() {
@@ -181,11 +183,50 @@ export default function Home() {
             delay: 450
         }
     ];
+    useEffect(() => {
+  const askPermissionOnce = async () => {
+    if ("Notification" in window && Notification.permission === "default") {
+      await Notification.requestPermission();
+    }
+    window.removeEventListener("click", askPermissionOnce);
+  };
+
+  window.addEventListener("click", askPermissionOnce);
+
+  return () => window.removeEventListener("click", askPermissionOnce);
+}, []);
+
+useEffect(() => {
+  if (!("Notification" in window)) return;
+
+  if (Notification.permission !== "granted") return;
+
+  const interval = setInterval(() => {
+    const quotes = quotesData.result;
+    if (!quotes || quotes.length === 0) return;
+
+    const randomQuote =
+      quotes[Math.floor(Math.random() * quotes.length)];
+
+    new Notification("📿 اقتباس إسلامي", {
+      body: `${randomQuote.text} — ${randomQuote.author}`,
+      icon: "/img.png",
+    });
+  }, 60000);
+
+  return () => clearInterval(interval);
+}, []);
+
+
+
+
 
 
     return (
         <>
+        
             <section className="relative overflow-hidden min-h-screen pt-20 flex items-center justify-center bg-gradient-to-br from-orange-50 via-teal-50 to-white dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+
                 {/* خلفية زخرفية متحركة */}
                 <motion.div
                     initial={{ opacity: 0 }}
