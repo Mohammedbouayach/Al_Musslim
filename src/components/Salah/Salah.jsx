@@ -58,31 +58,86 @@ export default function Salah() {
     const [loadingScreen, setLoadingScreen] = useState(true);
     const [notificationPermission, setNotificationPermission] = useState(false);
     const [scheduledNotifications, setScheduledNotifications] = useState([]);
+    const [notificationStatus, setNotificationStatus] = useState("جاري التحقق...");
 
     // تسجيل Service Worker وطلب إذن الإشعارات
     useEffect(() => {
         const initNotifications = async () => {
-            if ("serviceWorker" in navigator && "Notification" in window) {
-                try {
-                    // تسجيل Service Worker
-                    const registration = await navigator.serviceWorker.register("/sw.js");
-                    console.log("✅ Service Worker registered");
+            console.log("🔍 بدء فحص دعم الإشعارات...");
 
+            // فحص دعم Service Worker
+            if (!("serviceWorker" in navigator)) {
+                const msg = "❌ متصفحك لا يدعم Service Worker";
+                console.error(msg);
+                setNotificationStatus(msg);
+                toast.error(msg, { position: toast.POSITION.TOP_CENTER });
+                return;
+            }
+
+            // فحص دعم الإشعارات
+            if (!("Notification" in window)) {
+                const msg = "❌ متصفحك لا يدعم الإشعارات";
+                console.error(msg);
+                setNotificationStatus(msg);
+                toast.error(msg, { position: toast.POSITION.TOP_CENTER });
+                return;
+            }
+
+            console.log("✅ المتصفح يدعم Service Worker والإشعارات");
+
+            try {
+                // تسجيل Service Worker
+                console.log("🔄 جاري تسجيل Service Worker...");
+                const registration = await navigator.serviceWorker.register("/sw.js", {
+                    scope: "/"
+                });
+                console.log("✅ Service Worker مسجل بنجاح:", registration.scope);
+
+                // انتظار Service Worker ليصبح جاهز
+                await navigator.serviceWorker.ready;
+                console.log("✅ Service Worker جاهز للعمل");
+
+                // فحص حالة الإذن الحالية
+                console.log("🔍 حالة إذن الإشعارات الحالية:", Notification.permission);
+
+                if (Notification.permission === "granted") {
+                    setNotificationPermission(true);
+                    setNotificationStatus("✅ الإشعارات مفعلة");
+                    toast.success("✅ الإشعارات مفعلة بالفعل!", {
+                        position: toast.POSITION.TOP_CENTER,
+                    });
+                } else if (Notification.permission === "denied") {
+                    setNotificationStatus("❌ تم رفض الإشعارات من المتصفح");
+                    toast.error("❌ تم رفض الإشعارات. يرجى تفعيلها من إعدادات المتصفح", {
+                        position: toast.POSITION.TOP_CENTER,
+                        autoClose: 5000,
+                    });
+                } else {
                     // طلب إذن الإشعارات
+                    console.log("🔔 طلب إذن الإشعارات...");
                     const permission = await Notification.requestPermission();
+                    console.log("📝 نتيجة طلب الإذن:", permission);
+
                     if (permission === "granted") {
                         setNotificationPermission(true);
+                        setNotificationStatus("✅ تم تفعيل الإشعارات بنجاح");
                         toast.success("✅ تم تفعيل الإشعارات بنجاح!", {
                             position: toast.POSITION.TOP_CENTER,
                         });
                     } else {
+                        setNotificationStatus("⚠️ لم يتم السماح بالإشعارات");
                         toast.warn("⚠️ يرجى السماح بالإشعارات لتلقي تنبيهات الصلاة", {
                             position: toast.POSITION.TOP_CENTER,
                         });
                     }
-                } catch (error) {
-                    console.error("❌ خطأ في تسجيل Service Worker:", error);
                 }
+            } catch (error) {
+                console.error("❌ خطأ في تسجيل Service Worker:", error);
+                setNotificationStatus("❌ خطأ: " + error.message);
+                toast.error("❌ خطأ في تفعيل الإشعارات: " + error.message, {
+                    position: toast.POSITION.TOP_CENTER,
+                    autoClose: 5000,
+                });
             }
         };
 
@@ -92,6 +147,7 @@ export default function Salah() {
     // دالة لجدولة إشعار واحد
     const scheduleNotification = async (prayerName, prayerTime) => {
         if (!notificationPermission || Notification.permission !== "granted") {
+            console.warn("⚠️ لا يمكن جدولة الإشعار - الإذن غير ممنوح");
             return;
         }
 
@@ -111,30 +167,28 @@ export default function Salah() {
 
             // جدولة الإشعار
             const timeoutId = setTimeout(async () => {
-                const registration = await navigator.serviceWorker.ready;
+                try {
+                    const registration = await navigator.serviceWorker.ready;
 
-                await registration.showNotification(`🕌 حان وقت صلاة ${prayerName}`, {
-                    body: `الوقت: ${moment(prayerTime, "HH:mm").format("hh:mm A")}\n\nالصلاة خير من النوم 🤲`,
-                    icon: "/icon-192x192.png",
-                    badge: "/icon-192x192.png",
-                    tag: `prayer-${prayerName}-${Date.now()}`,
-                    requireInteraction: true,
-                    vibrate: [200, 100, 200, 100, 200, 100, 200],
-                    timestamp: prayerMoment.valueOf(),
-                    data: {
-                        prayer: prayerName,
-                        time: prayerTime,
-                        url: "/salah",
-                    },
-                    actions: [
-                        {
-                            action: "view",
-                            title: "👁️ عرض الأوقات",
+                    await registration.showNotification(`🕌 حان وقت صلاة ${prayerName}`, {
+                        body: `الوقت: ${moment(prayerTime, "HH:mm").format("hh:mm A")}\n\nالصلاة خير من النوم 🤲`,
+                        icon: "/icon-192x192.png",
+                        badge: "/icon-192x192.png",
+                        tag: `prayer-${prayerName}-${Date.now()}`,
+                        requireInteraction: true,
+                        vibrate: [200, 100, 200, 100, 200, 100, 200],
+                        timestamp: prayerMoment.valueOf(),
+                        data: {
+                            prayer: prayerName,
+                            time: prayerTime,
+                            url: "/salah",
                         },
-                    ],
-                });
+                    });
 
-                console.log(`✅ تم إرسال إشعار ${prayerName}`);
+                    console.log(`✅ تم إرسال إشعار ${prayerName}`);
+                } catch (error) {
+                    console.error(`❌ خطأ في إرسال إشعار ${prayerName}:`, error);
+                }
             }, msUntilPrayer);
 
             return timeoutId;
@@ -175,43 +229,116 @@ export default function Salah() {
             }
 
             setScheduledNotifications(timeouts);
-            toast.success("✅ تم جدولة إشعارات الصلاة بنجاح!", {
+            console.log(`✅ تم جدولة ${timeouts.length} إشعار بنجاح`);
+            toast.success(`✅ تم جدولة ${timeouts.length} إشعار للصلوات!`, {
                 position: toast.POSITION.TOP_CENTER,
                 autoClose: 3000,
             });
 
             // تنظيف عند إعادة التحميل
             return () => {
+                console.log("🧹 تنظيف الإشعارات المجدولة...");
                 timeouts.forEach((id) => clearTimeout(id));
             };
         }
     }, [timings, notificationPermission, ramadan]);
 
-    // إرسال إشعار تجريبي
+    // إرسال إشعار تجريبي - مع معالجة أخطاء محسّنة
     const sendTestNotification = async () => {
-        if (!notificationPermission) {
-            toast.warn("يرجى السماح بالإشعارات أولاً!", {
-                position: toast.POSITION.TOP_CENTER,
-            });
+        console.log("🧪 محاولة إرسال إشعار تجريبي...");
+        console.log("📊 حالة الإذن:", Notification.permission);
+        console.log("📊 notificationPermission state:", notificationPermission);
+
+        // فحص دعم الإشعارات
+        if (!("Notification" in window)) {
+            const msg = "❌ متصفحك لا يدعم الإشعارات";
+            console.error(msg);
+            toast.error(msg, { position: toast.POSITION.TOP_CENTER });
             return;
         }
 
+        // فحص الإذن
+        if (Notification.permission === "denied") {
+            const msg = "❌ تم رفض الإشعارات. فعّلها من إعدادات المتصفح";
+            console.error(msg);
+            toast.error(msg, { position: toast.POSITION.TOP_CENTER, autoClose: 5000 });
+            return;
+        }
+
+        // طلب الإذن إذا لم يكن ممنوح
+        if (Notification.permission !== "granted") {
+            console.log("🔔 طلب إذن الإشعارات...");
+            try {
+                const permission = await Notification.requestPermission();
+                console.log("📝 نتيجة الإذن:", permission);
+                
+                if (permission !== "granted") {
+                    toast.warn("⚠️ يرجى السماح بالإشعارات!", {
+                        position: toast.POSITION.TOP_CENTER,
+                    });
+                    return;
+                }
+                setNotificationPermission(true);
+            } catch (error) {
+                console.error("❌ خطأ في طلب الإذن:", error);
+                toast.error("❌ خطأ في طلب إذن الإشعارات", {
+                    position: toast.POSITION.TOP_CENTER,
+                });
+                return;
+            }
+        }
+
         try {
+            console.log("🔍 فحص Service Worker...");
+            
+            // فحص Service Worker
+            if (!navigator.serviceWorker.controller) {
+                console.warn("⚠️ Service Worker غير جاهز، جاري الانتظار...");
+                await navigator.serviceWorker.ready;
+                console.log("✅ Service Worker جاهز الآن");
+            }
+
             const registration = await navigator.serviceWorker.ready;
-            await registration.showNotification("🕌 إشعار تجريبي", {
-                body: "هذا إشعار تجريبي للتأكد من عمل الإشعارات ✅",
+            console.log("✅ تم الحصول على Service Worker registration");
+
+            console.log("📤 إرسال الإشعار التجريبي...");
+            
+            await registration.showNotification("🕌 إشعار تجريبي من تطبيق المسلم", {
+                body: "إذا ظهر هذا الإشعار، فإن الإشعارات تعمل بنجاح! ✅\n\nسيتم تنبيهك بمواعيد الصلاة تلقائياً 🤲",
                 icon: "/icon-192x192.png",
                 badge: "/icon-192x192.png",
                 vibrate: [200, 100, 200],
-                tag: "test-notification",
+                tag: "test-notification-" + Date.now(),
+                requireInteraction: false,
+                data: {
+                    type: "test",
+                    timestamp: Date.now()
+                }
             });
-            toast.success("✅ تم إرسال الإشعار التجريبي!", {
+
+            console.log("✅ تم إرسال الإشعار التجريبي بنجاح!");
+            
+            toast.success("✅ تم إرسال الإشعار التجريبي! تحقق من شريط الإشعارات", {
                 position: toast.POSITION.TOP_CENTER,
+                autoClose: 4000,
             });
+
         } catch (error) {
-            console.error("❌ خطأ في إرسال الإشعار التجريبي:", error);
-            toast.error("❌ فشل إرسال الإشعار التجريبي", {
+            console.error("❌ خطأ تفصيلي في إرسال الإشعار:", error);
+            console.error("❌ نوع الخطأ:", error.name);
+            console.error("❌ رسالة الخطأ:", error.message);
+            
+            let errorMessage = "❌ فشل إرسال الإشعار التجريبي";
+            
+            if (error.name === "TypeError") {
+                errorMessage += "\n⚠️ تأكد من تسجيل Service Worker بشكل صحيح";
+            } else if (error.name === "NotAllowedError") {
+                errorMessage += "\n⚠️ تم رفض الإذن من المتصفح";
+            }
+            
+            toast.error(errorMessage + "\n\nتفاصيل: " + error.message, {
                 position: toast.POSITION.TOP_CENTER,
+                autoClose: 6000,
             });
         }
     };
@@ -393,7 +520,7 @@ export default function Salah() {
     return (
         <>
             <Landing title="أوقات الصلاة" />
-            <ToastContainer />
+            <ToastContainer rtl={true} />
             <section className="pt-15 mt-4 salah pb-5 relative">
                 <Image
                     width={100}
@@ -419,30 +546,38 @@ export default function Salah() {
                                 }`}
                             >
                                 {notificationPermission ? (
-                                    <div className="flex items-center justify-center gap-2 flex-wrap">
+                                    <div className="flex items-center justify-center gap-3 flex-wrap">
                                         <span className="text-xl">🔔</span>
-                                        <div className="flex-1 min-w-[200px]">
-                                            <div className="font-bold">الإشعارات مفعلة</div>
-                                            <div className="text-sm opacity-90">
+                                        <div className="flex-1 min-w-[200px] text-center">
+                                            <div className="font-bold text-lg">
+                                                {notificationStatus}
+                                            </div>
+                                            <div className="text-sm opacity-90 mt-1">
                                                 تم جدولة {scheduledNotifications.length} إشعار
                                             </div>
                                         </div>
                                         <button
                                             onClick={sendTestNotification}
-                                            className="bg-white/20 hover:bg-white/30 px-3 py-1 rounded text-sm transition-colors"
+                                            className="bg-white/20 hover:bg-white/40 active:bg-white/50 px-4 py-2 rounded-lg text-sm font-bold transition-all hover:scale-105 active:scale-95 shadow-lg"
                                         >
                                             📢 إشعار تجريبي
                                         </button>
                                     </div>
                                 ) : (
-                                    <div className="flex items-center justify-center gap-2">
-                                        <span className="text-xl">⚠️</span>
-                                        <div>
-                                            <div className="font-bold">الإشعارات غير مفعلة</div>
-                                            <div className="text-sm opacity-90">
-                                                يرجى السماح بالإشعارات من إعدادات المتصفح
-                                            </div>
+                                    <div className="flex items-center justify-center gap-2 flex-col">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-xl">⚠️</span>
+                                            <div className="font-bold">{notificationStatus}</div>
                                         </div>
+                                        <div className="text-sm opacity-90">
+                                            يرجى السماح بالإشعارات من إعدادات المتصفح
+                                        </div>
+                                        <button
+                                            onClick={sendTestNotification}
+                                            className="mt-2 bg-white/20 hover:bg-white/40 px-4 py-2 rounded-lg text-sm font-bold transition-all"
+                                        >
+                                            🔔 تفعيل الإشعارات
+                                        </button>
                                     </div>
                                 )}
                             </div>
