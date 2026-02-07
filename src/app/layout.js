@@ -1,4 +1,3 @@
-
 import "./globals.css";
 
 import Navbar from "@/components/Layout/Navbar";
@@ -32,6 +31,7 @@ const cairo = localFont({
     weight: "300 400 700 900",
     display: "swap",
 });
+
 
 
 export const metadata = {

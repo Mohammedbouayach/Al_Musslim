@@ -56,30 +56,162 @@ export default function Salah() {
     const [refreshGps, setRefreshGps] = useState(true);
     const [btnError, setBtnError] = useState(null);
     const [loadingScreen, setLoadingScreen] = useState(true);
+    const [notificationPermission, setNotificationPermission] = useState(false);
+    const [scheduledNotifications, setScheduledNotifications] = useState([]);
 
-    const [notifiedPrayers, setNotifiedPrayers] = useState({}); // لتسجيل الصلوات التي تم إرسال إشعار لها
-
-    // طلب إذن الإشعارات مرة واحدة
+    // تسجيل Service Worker وطلب إذن الإشعارات
     useEffect(() => {
-        if ("Notification" in window) {
-            Notification.requestPermission().then(permission => {
-                if (permission !== "granted") {
-                    console.log("لم يتم السماح بالإشعارات");
+        const initNotifications = async () => {
+            if ("serviceWorker" in navigator && "Notification" in window) {
+                try {
+                    // تسجيل Service Worker
+                    const registration = await navigator.serviceWorker.register("/sw.js");
+                    console.log("✅ Service Worker registered");
+
+                    // طلب إذن الإشعارات
+                    const permission = await Notification.requestPermission();
+                    if (permission === "granted") {
+                        setNotificationPermission(true);
+                        toast.success("✅ تم تفعيل الإشعارات بنجاح!", {
+                            position: toast.POSITION.TOP_CENTER,
+                        });
+                    } else {
+                        toast.warn("⚠️ يرجى السماح بالإشعارات لتلقي تنبيهات الصلاة", {
+                            position: toast.POSITION.TOP_CENTER,
+                        });
+                    }
+                } catch (error) {
+                    console.error("❌ خطأ في تسجيل Service Worker:", error);
                 }
-            });
-        }
+            }
+        };
+
+        initNotifications();
     }, []);
 
-    // دالة لإرسال إشعار الصلاة
-    const showPrayerNotification = (prayerName, prayerTime) => {
-        if (Notification.permission === "granted") {
-            navigator.serviceWorker.ready.then(registration => {
-                registration.showNotification(`حان وقت صلاة ${prayerName}`, {
-                    body: `الوقت: ${prayerTime}`,
-                    icon: "/img.png",
-                    tag: `prayer-${prayerName}`,
-                    renotify: true
+    // دالة لجدولة إشعار واحد
+    const scheduleNotification = async (prayerName, prayerTime) => {
+        if (!notificationPermission || Notification.permission !== "granted") {
+            return;
+        }
+
+        try {
+            const now = moment();
+            const prayerMoment = moment(prayerTime, "HH:mm");
+
+            // إذا مضى وقت الصلاة اليوم، جدولها للغد
+            if (prayerMoment.isBefore(now)) {
+                prayerMoment.add(1, "day");
+            }
+
+            const msUntilPrayer = prayerMoment.diff(now);
+            const minutesUntil = Math.floor(msUntilPrayer / 60000);
+
+            console.log(`📅 جدولة إشعار ${prayerName} بعد ${minutesUntil} دقيقة`);
+
+            // جدولة الإشعار
+            const timeoutId = setTimeout(async () => {
+                const registration = await navigator.serviceWorker.ready;
+
+                await registration.showNotification(`🕌 حان وقت صلاة ${prayerName}`, {
+                    body: `الوقت: ${moment(prayerTime, "HH:mm").format("hh:mm A")}\n\nالصلاة خير من النوم 🤲`,
+                    icon: "/icon-192x192.png",
+                    badge: "/icon-192x192.png",
+                    tag: `prayer-${prayerName}-${Date.now()}`,
+                    requireInteraction: true,
+                    vibrate: [200, 100, 200, 100, 200, 100, 200],
+                    timestamp: prayerMoment.valueOf(),
+                    data: {
+                        prayer: prayerName,
+                        time: prayerTime,
+                        url: "/salah",
+                    },
+                    actions: [
+                        {
+                            action: "view",
+                            title: "👁️ عرض الأوقات",
+                        },
+                    ],
                 });
+
+                console.log(`✅ تم إرسال إشعار ${prayerName}`);
+            }, msUntilPrayer);
+
+            return timeoutId;
+        } catch (error) {
+            console.error(`❌ خطأ في جدولة إشعار ${prayerName}:`, error);
+        }
+    };
+
+    // جدولة جميع إشعارات الصلاة
+    useEffect(() => {
+        if (
+            notificationPermission &&
+            timings.Fajr !== "00:00" &&
+            timings.Dhuhr !== "00:00"
+        ) {
+            console.log("📅 بدء جدولة إشعارات الصلاة...");
+
+            const timeouts = [];
+
+            // جدولة الصلوات الخمس
+            prayersArray.forEach((prayer) => {
+                const timeoutId = scheduleNotification(
+                    prayer.displayName,
+                    timings[prayer.key]
+                );
+                if (timeoutId) timeouts.push(timeoutId);
+            });
+
+            // جدولة أوقات رمضان
+            if (ramadan) {
+                ramadanTimingsArray.forEach((ramadanTime) => {
+                    const timeoutId = scheduleNotification(
+                        ramadanTime.displayName,
+                        timings[ramadanTime.key]
+                    );
+                    if (timeoutId) timeouts.push(timeoutId);
+                });
+            }
+
+            setScheduledNotifications(timeouts);
+            toast.success("✅ تم جدولة إشعارات الصلاة بنجاح!", {
+                position: toast.POSITION.TOP_CENTER,
+                autoClose: 3000,
+            });
+
+            // تنظيف عند إعادة التحميل
+            return () => {
+                timeouts.forEach((id) => clearTimeout(id));
+            };
+        }
+    }, [timings, notificationPermission, ramadan]);
+
+    // إرسال إشعار تجريبي
+    const sendTestNotification = async () => {
+        if (!notificationPermission) {
+            toast.warn("يرجى السماح بالإشعارات أولاً!", {
+                position: toast.POSITION.TOP_CENTER,
+            });
+            return;
+        }
+
+        try {
+            const registration = await navigator.serviceWorker.ready;
+            await registration.showNotification("🕌 إشعار تجريبي", {
+                body: "هذا إشعار تجريبي للتأكد من عمل الإشعارات ✅",
+                icon: "/icon-192x192.png",
+                badge: "/icon-192x192.png",
+                vibrate: [200, 100, 200],
+                tag: "test-notification",
+            });
+            toast.success("✅ تم إرسال الإشعار التجريبي!", {
+                position: toast.POSITION.TOP_CENTER,
+            });
+        } catch (error) {
+            console.error("❌ خطأ في إرسال الإشعار التجريبي:", error);
+            toast.error("❌ فشل إرسال الإشعار التجريبي", {
+                position: toast.POSITION.TOP_CENTER,
             });
         }
     };
@@ -122,21 +254,6 @@ export default function Salah() {
             m: durationRemainingTime.minutes().toString().padStart(2, "0"),
             s: durationRemainingTime.seconds().toString().padStart(2, "0"),
         });
-
-        // إشعار عند وقت الصلاة
-        const nowHHMM = momentNow.format("HH:mm");
-        const currentPrayerName = prayersArray[prayerIndex].displayName;
-        if (nextPrayerTime === nowHHMM && !notifiedPrayers[currentPrayerName]) {
-            showPrayerNotification(currentPrayerName, nextPrayerTime);
-            setNotifiedPrayers(prev => ({ ...prev, [currentPrayerName]: true }));
-        }
-
-        // إعادة تعيين الإشعار للصلاة القادمة إذا انتقل الوقت
-        prayersArray.forEach(p => {
-            if (timings[p.key] !== nowHHMM && notifiedPrayers[p.displayName]) {
-                setNotifiedPrayers(prev => ({ ...prev, [p.displayName]: false }));
-            }
-        });
     };
 
     const setupRamadanCountdownTimer = () => {
@@ -175,12 +292,13 @@ export default function Salah() {
             if (ramadan) setupRamadanCountdownTimer();
         }, 1000);
         return () => clearInterval(interval);
-    }, [timings, notifiedPrayers]);
+    }, [timings]);
 
-    // جلب أوقات الصلاة من API أو الموقع الحالي
+    // جلب أوقات الصلاة
     useEffect(() => {
         setLoadingScreen(true);
         let date = new Date();
+
         async function getPlayer(latitude, longitude) {
             try {
                 const response = await fetch(
@@ -240,7 +358,16 @@ export default function Salah() {
                     });
                     console.log(error);
                 }
-                setBtnError(<> {/* محتوى btnError هنا */} </>);
+                setBtnError(
+                    <div className="container px-5 m-auto text-center">
+                        <button
+                            onClick={() => setRefreshGps(!refreshGps)}
+                            className="bg-lime-500 hover:bg-lime-600 text-white py-2 px-6 rounded-lg mt-4 transition-colors"
+                        >
+                            🔄 تحديث الموقع
+                        </button>
+                    </div>
+                );
                 setLoadingScreen(false);
             }
         }
@@ -282,29 +409,71 @@ export default function Salah() {
                     <Loader />
                 ) : (
                     <>
+                        {/* شريط حالة الإشعارات */}
+                        <div className="container px-5 m-auto mb-5">
+                            <div
+                                className={`text-center py-3 px-4 rounded-lg shadow-md transition-all ${
+                                    notificationPermission
+                                        ? "bg-gradient-to-r from-green-500 to-lime-500 text-white"
+                                        : "bg-gradient-to-r from-yellow-500 to-orange-500 text-white"
+                                }`}
+                            >
+                                {notificationPermission ? (
+                                    <div className="flex items-center justify-center gap-2 flex-wrap">
+                                        <span className="text-xl">🔔</span>
+                                        <div className="flex-1 min-w-[200px]">
+                                            <div className="font-bold">الإشعارات مفعلة</div>
+                                            <div className="text-sm opacity-90">
+                                                تم جدولة {scheduledNotifications.length} إشعار
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={sendTestNotification}
+                                            className="bg-white/20 hover:bg-white/30 px-3 py-1 rounded text-sm transition-colors"
+                                        >
+                                            📢 إشعار تجريبي
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center justify-center gap-2">
+                                        <span className="text-xl">⚠️</span>
+                                        <div>
+                                            <div className="font-bold">الإشعارات غير مفعلة</div>
+                                            <div className="text-sm opacity-90">
+                                                يرجى السماح بالإشعارات من إعدادات المتصفح
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
                         <div className="prayer-times-section">
                             <div className="container px-5 m-auto mb-10 text-white md:grid lg:grid-cols-5 md:grid-cols-3 gap-5 justify-center items-center">
                                 {prayersArray.map((prayer, index) => (
                                     <div
                                         key={prayer.key}
-                                        className={`p-5 w-full ${prayer.css} time rounded-md mb-5 md:mb-0 bg-gradient-to-r from-orange-600 to-lime-500 flex flex-col justify-center text-xl ${nextPrayerIndex === index
-                                            ? "md:scale-110 sm:scale-105"
-                                            : "text-gray-300 py-8"
-                                            }`}>
-                                        <span className="block mb-1">
-                                            أذان {prayer.displayName}
+                                        className={`p-5 w-full ${prayer.css} time rounded-md mb-5 md:mb-0 bg-gradient-to-r from-orange-600 to-lime-500 flex flex-col justify-center text-xl transition-all duration-300 ${
+                                            nextPrayerIndex === index
+                                                ? "md:scale-110 sm:scale-105 shadow-2xl ring-4 ring-white/50"
+                                                : "text-gray-300 py-8 opacity-80"
+                                        }`}
+                                    >
+                                        <span className="block mb-1 flex items-center justify-center gap-2">
+                                            <span>🕌</span>
+                                            <span>أذان {prayer.displayName}</span>
                                         </span>
-                                        <span className="block font-sans">
-                                            {moment(timings[prayer.key], [
-                                                "HH:mm",
-                                            ]).format("hh:mm A")}
+                                        <span className="block font-sans text-2xl">
+                                            {moment(timings[prayer.key], ["HH:mm"]).format(
+                                                "hh:mm A"
+                                            )}
                                         </span>
                                         {nextPrayerIndex === index && (
                                             <>
-                                                <span className="block mt-3 text-sm">
-                                                    الصلاة التالية
+                                                <span className="block mt-3 text-sm opacity-90">
+                                                    ⏰ الصلاة التالية
                                                 </span>
-                                                <span className="block font-sans text-3xl">
+                                                <span className="block font-sans text-3xl font-bold animate-pulse">
                                                     {remainingPrayerTime.h}:
                                                     {remainingPrayerTime.m}:
                                                     {remainingPrayerTime.s}
@@ -318,44 +487,46 @@ export default function Salah() {
 
                         {ramadan && (
                             <div className="ramadan-times-section mt-10">
-                                <h2 className="text-white text-2xl text-center mb-5">
-                                    أوقات رمضان
+                                <h2 className="text-2xl text-center mb-5 font-bold flex items-center justify-center gap-2">
+                                    <span>🌙</span>
+                                    <span>أوقات رمضان المبارك</span>
+                                    <span>✨</span>
                                 </h2>
                                 <div className="container px-5 m-auto flex-wrap text-white flex gap-5 justify-center items-center">
-                                    {ramadanTimingsArray.map(
-                                        (ramadanTime, index) => (
-                                            <div
-                                                key={ramadanTime.key}
-                                                className={`p-5 min-w-fit max-md:w-full pe-32 ${ramadanTime.css} time rounded-md mb-5 md:mb-0 bg-gradient-to-r from-blue-600 to-cyan-500 flex flex-col justify-center text-xl ${nextRamadanIndex === index
-                                                    ? "md:scale-110 sm:scale-105"
-                                                    : "text-gray-300 py-8"
-                                                    }`}>
-                                                <span className="block mb-1">
-                                                    {ramadanTime.displayName}
-                                                </span>
-                                                <span className="block font-sans">
-                                                    {moment(
-                                                        timings[
-                                                        ramadanTime.key
-                                                        ],
-                                                        ["HH:mm"]
-                                                    ).format("hh:mm A")}
-                                                </span>
-                                                {nextRamadanIndex === index && (
-                                                    <>
-                                                        <span className="block mt-3 text-sm">
-                                                            الوقت التالي
-                                                        </span>
-                                                        <span className="block font-sans text-3xl">
-                                                            {remainingRamadanTime.h}
-                                                            :{remainingRamadanTime.m}
-                                                            :{remainingRamadanTime.s}
-                                                        </span>
-                                                    </>
-                                                )}
-                                            </div>
-                                        )
-                                    )}
+                                    {ramadanTimingsArray.map((ramadanTime, index) => (
+                                        <div
+                                            key={ramadanTime.key}
+                                            className={`p-5 min-w-fit max-md:w-full pe-32 ${ramadanTime.css} time rounded-md mb-5 md:mb-0 bg-gradient-to-r from-blue-600 to-cyan-500 flex flex-col justify-center text-xl transition-all duration-300 ${
+                                                nextRamadanIndex === index
+                                                    ? "md:scale-110 sm:scale-105 shadow-2xl ring-4 ring-white/50"
+                                                    : "text-gray-300 py-8 opacity-80"
+                                            }`}
+                                        >
+                                            <span className="block mb-1">
+                                                {ramadanTime.displayName === "سحور" && "🍽️"}
+                                                {ramadanTime.displayName === "إمساك" && "⏸️"}
+                                                {ramadanTime.displayName === "إفطار" && "🌅"}{" "}
+                                                {ramadanTime.displayName}
+                                            </span>
+                                            <span className="block font-sans text-2xl">
+                                                {moment(timings[ramadanTime.key], [
+                                                    "HH:mm",
+                                                ]).format("hh:mm A")}
+                                            </span>
+                                            {nextRamadanIndex === index && (
+                                                <>
+                                                    <span className="block mt-3 text-sm opacity-90">
+                                                        ⏰ الوقت التالي
+                                                    </span>
+                                                    <span className="block font-sans text-3xl font-bold animate-pulse">
+                                                        {remainingRamadanTime.h}:
+                                                        {remainingRamadanTime.m}:
+                                                        {remainingRamadanTime.s}
+                                                    </span>
+                                                </>
+                                            )}
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
                         )}
