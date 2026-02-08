@@ -57,65 +57,194 @@ export default function Salah() {
     const [btnError, setBtnError] = useState(null);
     const [loadingScreen, setLoadingScreen] = useState(true);
     const [notificationPermission, setNotificationPermission] = useState(false);
+    const [swReady, setSwReady] = useState(false);
+    const [swStatus, setSwStatus] = useState("جاري التحميل...");
     const [testScheduled, setTestScheduled] = useState(false);
     const [testTime, setTestTime] = useState("");
 
-    // تسجيل Service Worker
+    // تسجيل Service Worker - نسخة محسّنة للإنتاج
     useEffect(() => {
         const initSW = async () => {
-            if (!("serviceWorker" in navigator)) return;
+            console.log('🚀 بدء تهيئة Service Worker...');
+            
+            // فحص الدعم
+            if (!("serviceWorker" in navigator)) {
+                setSwStatus("❌ المتصفح لا يدعم Service Worker");
+                console.error("Service Worker not supported");
+                return;
+            }
+
+            if (!("Notification" in window)) {
+                setSwStatus("❌ المتصفح لا يدعم الإشعارات");
+                console.error("Notifications not supported");
+                return;
+            }
 
             try {
-                await navigator.serviceWorker.register("/sw.js");
-                await navigator.serviceWorker.ready;
+                setSwStatus("📝 تسجيل Service Worker...");
                 
-                if (Notification.permission === "granted") {
-                    setNotificationPermission(true);
+                // التأكد من المسار الصحيح
+                const swUrl = '/sw.js';
+                console.log('Registering SW from:', swUrl);
+
+                // تسجيل Service Worker
+                const registration = await navigator.serviceWorker.register(swUrl, {
+                    scope: '/',
+                    updateViaCache: 'none'
+                });
+                
+                console.log('✅ Service Worker registered:', registration.scope);
+                setSwStatus("⏳ انتظار التفعيل...");
+
+                // انتظار التفعيل
+                if (registration.installing) {
+                    console.log('SW is installing...');
+                    registration.installing.addEventListener('statechange', function(e) {
+                        console.log('SW state changed to:', e.target.state);
+                    });
                 }
+
+                // انتظار ready
+                await navigator.serviceWorker.ready;
+                console.log('✅ Service Worker is ready');
+                setSwStatus("🔗 الاتصال بالـ Controller...");
+
+                // انتظار controller - مع محاولات متعددة
+                let attempts = 0;
+                const maxAttempts = 30; // 15 ثانية
+                let controller = navigator.serviceWorker.controller;
+
+                while (!controller && attempts < maxAttempts) {
+                    console.log(`Waiting for controller... attempt ${attempts + 1}/${maxAttempts}`);
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    controller = navigator.serviceWorker.controller;
+                    attempts++;
+                }
+
+                if (controller) {
+                    console.log('✅✅✅ Controller is ready!');
+                    setSwReady(true);
+                    setSwStatus("✅ جاهز!");
+                    
+                    toast.success("✅ نظام الإشعارات جاهز!", {
+                        position: toast.POSITION.TOP_CENTER,
+                        autoClose: 3000,
+                    });
+
+                    // طلب الإذن
+                    if (Notification.permission === "default") {
+                        const permission = await Notification.requestPermission();
+                        setNotificationPermission(permission === "granted");
+                    } else if (Notification.permission === "granted") {
+                        setNotificationPermission(true);
+                    }
+                } else {
+                    console.error('❌ Failed to get controller after', maxAttempts, 'attempts');
+                    setSwStatus("⚠️ يرجى إعادة تحميل الصفحة");
+                    
+                    toast.warn("⚠️ يرجى إعادة تحميل الصفحة (F5)", {
+                        position: toast.POSITION.TOP_CENTER,
+                        autoClose: 5000,
+                    });
+                }
+
             } catch (error) {
-                console.error("SW Error:", error);
+                console.error('❌ SW Error:', error);
+                setSwStatus("❌ خطأ: " + error.message);
+                
+                toast.error("❌ خطأ في تفعيل الإشعارات", {
+                    position: toast.POSITION.TOP_CENTER,
+                });
             }
         };
 
-        initSW();
+        // بدء التهيئة بعد تحميل الصفحة
+        if (document.readyState === 'complete') {
+            initSW();
+        } else {
+            window.addEventListener('load', initSW);
+            return () => window.removeEventListener('load', initSW);
+        }
     }, []);
 
-    // إرسال أوقات الصلاة الحقيقية للـ SW
+    // إرسال أوقات الصلاة للـ SW
     useEffect(() => {
-        if (notificationPermission && timings.Fajr !== "00:00" && !testScheduled) {
-            if (navigator.serviceWorker.controller) {
-                navigator.serviceWorker.controller.postMessage({
+        if (swReady && notificationPermission && timings.Fajr !== "00:00" && !testScheduled) {
+            const controller = navigator.serviceWorker.controller;
+            if (controller) {
+                controller.postMessage({
                     type: "SET_PRAYER_TIMINGS",
                     timings: timings,
                 });
-                console.log("✅ تم إرسال أوقات الصلاة الحقيقية");
+                console.log("📤 أوقات الصلاة المرسلة:", timings);
+                
+                toast.success("📅 تم تحديث أوقات الصلاة ✅", {
+                    position: toast.POSITION.TOP_CENTER,
+                    autoClose: 2000,
+                });
             }
         }
-    }, [notificationPermission, timings, testScheduled]);
+    }, [swReady, notificationPermission, timings, testScheduled]);
 
-    // زر الاختبار - يجدول إشعار بعد دقيقة
-    const scheduleTestNotification = async () => {
-        // طلب الإذن أولاً
+    // اختبار فوري
+    const testNotificationNow = async () => {
+        if (!swReady) {
+            toast.error("❌ Service Worker غير جاهز\n\nجرب إعادة تحميل الصفحة", {
+                position: toast.POSITION.TOP_CENTER,
+            });
+            return;
+        }
+
         if (Notification.permission !== "granted") {
             const permission = await Notification.requestPermission();
             if (permission !== "granted") {
-                alert("❌ يرجى السماح بالإشعارات أولاً!");
+                toast.error("❌ يرجى السماح بالإشعارات!", {
+                    position: toast.POSITION.TOP_CENTER,
+                });
                 return;
             }
             setNotificationPermission(true);
         }
 
-        // حساب الوقت بعد دقيقة
+        const controller = navigator.serviceWorker.controller;
+        if (controller) {
+            controller.postMessage({ type: "TEST_NOW" });
+            toast.success("✅ تم إرسال إشعار اختبار!", {
+                position: toast.POSITION.TOP_CENTER,
+            });
+        }
+    };
+
+    // اختبار بعد دقيقة
+    const scheduleTestNotification = async () => {
+        if (!swReady) {
+            toast.error("❌ Service Worker غير جاهز", {
+                position: toast.POSITION.TOP_CENTER,
+            });
+            return;
+        }
+
+        if (Notification.permission !== "granted") {
+            const permission = await Notification.requestPermission();
+            if (permission !== "granted") {
+                toast.error("❌ يرجى السماح بالإشعارات!", {
+                    position: toast.POSITION.TOP_CENTER,
+                });
+                return;
+            }
+            setNotificationPermission(true);
+        }
+
         const now = new Date();
         now.setMinutes(now.getMinutes() + 1);
         const testTimeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
 
-        // إرسال أوقات اختبارية للـ Service Worker
-        if (navigator.serviceWorker.controller) {
-            navigator.serviceWorker.controller.postMessage({
+        const controller = navigator.serviceWorker.controller;
+        if (controller) {
+            controller.postMessage({
                 type: "SET_PRAYER_TIMINGS",
                 timings: {
-                    Fajr: testTimeStr, // سيرسل إشعار الفجر بعد دقيقة
+                    Fajr: testTimeStr,
                     Dhuhr: "12:00",
                     Asr: "15:00",
                     Sunset: "18:00",
@@ -126,32 +255,24 @@ export default function Salah() {
             setTestScheduled(true);
             setTestTime(testTimeStr);
 
-            toast.success(`⏰ تم جدولة إشعار اختبار!\n\nسيظهر إشعار "صلاة الفجر" على الساعة: ${testTimeStr}\n\nانتظر دقيقة واحدة... 🕐`, {
+            toast.success(`⏰ سيصل إشعار على الساعة: ${testTimeStr}\n\nيمكنك إغلاق التطبيق الآن!`, {
                 position: toast.POSITION.TOP_CENTER,
                 autoClose: 8000,
-            });
-
-            console.log(`⏰ تم جدولة إشعار اختبار على الوقت: ${testTimeStr}`);
-            console.log("⏳ انتظر دقيقة واحدة...");
-        } else {
-            toast.error("❌ Service Worker غير جاهز!\n\nاضغط Ctrl+Shift+R وحاول مرة أخرى", {
-                position: toast.POSITION.TOP_CENTER,
             });
         }
     };
 
-    // إلغاء الاختبار وإعادة الأوقات الحقيقية
+    // إلغاء الاختبار
     const cancelTest = () => {
-        if (navigator.serviceWorker.controller) {
-            navigator.serviceWorker.controller.postMessage({
+        const controller = navigator.serviceWorker.controller;
+        if (controller) {
+            controller.postMessage({
                 type: "SET_PRAYER_TIMINGS",
-                timings: timings, // إرجاع الأوقات الحقيقية
+                timings: timings,
             });
-
             setTestScheduled(false);
             setTestTime("");
-
-            toast.info("✅ تم إلغاء الاختبار وإعادة الأوقات الحقيقية", {
+            toast.info("✅ تم إلغاء الاختبار", {
                 position: toast.POSITION.TOP_CENTER,
             });
         }
@@ -355,44 +476,71 @@ export default function Salah() {
                             <div className={`p-4 rounded-xl shadow-lg transition-all ${
                                 testScheduled 
                                     ? "bg-gradient-to-r from-orange-500 to-red-500 text-white animate-pulse" 
-                                    : "bg-gradient-to-r from-green-500 to-lime-500 text-white"
+                                    : notificationPermission && swReady
+                                    ? "bg-gradient-to-r from-green-500 to-lime-500 text-white"
+                                    : "bg-gradient-to-r from-gray-500 to-gray-600 text-white"
                             }`}>
                                 {testScheduled ? (
                                     <div className="text-center">
                                         <div className="text-2xl font-bold mb-2">
-                                            ⏰ اختبار جاري...
+                                            ⏰ اختبار مجدول!
                                         </div>
                                         <div className="text-lg mb-3">
-                                            سيظهر إشعار "صلاة الفجر" على الساعة: <span className="font-mono font-bold">{testTime}</span>
+                                            إشعار على: <span className="font-mono font-bold">{testTime}</span>
                                         </div>
                                         <div className="text-sm opacity-90 mb-3">
-                                            ⏳ انتظر دقيقة واحدة... (حتى لو أغلقت التطبيق!)
+                                            يمكنك إغلاق التطبيق - سيصل الإشعار! 🚀
                                         </div>
                                         <button
                                             onClick={cancelTest}
-                                            className="bg-white/30 hover:bg-white/50 px-6 py-2 rounded-lg font-bold transition-all"
+                                            className="bg-white/30 hover:bg-white/50 px-6 py-2 rounded-lg font-bold"
                                         >
-                                            ❌ إلغاء الاختبار
+                                            ❌ إلغاء
                                         </button>
                                     </div>
                                 ) : (
-                                    <div className="flex items-center justify-center gap-3 flex-wrap">
-                                        <span className="text-2xl">🔔</span>
-                                        <div className="flex-1 min-w-[200px] text-center">
-                                            <div className="font-bold text-lg">
-                                                {notificationPermission ? "الإشعارات مفعلة ✅" : "الإشعارات"}
+                                    <div>
+                                        <div className="text-center mb-4">
+                                            <div className="text-2xl font-bold mb-2">
+                                                🔔 {swReady && notificationPermission ? "الإشعارات مفعلة ✅" : "حالة النظام"}
                                             </div>
-                                            <div className="text-sm opacity-90">
-                                                تعمل في الخلفية - حتى بعد إغلاق التطبيق
+                                            <div className="text-sm opacity-90 bg-white/20 rounded px-3 py-1 inline-block">
+                                                {swStatus}
                                             </div>
                                         </div>
-                                        <button
-                                            onClick={scheduleTestNotification}
-                                            className="bg-white/30 hover:bg-white/50 active:bg-white/60 px-6 py-3 rounded-lg font-bold text-lg transition-all hover:scale-105 shadow-lg"
-                                        >
-                                            🧪 اختبار الآن<br/>
-                                            <span className="text-sm">(إشعار بعد دقيقة)</span>
-                                        </button>
+                                        
+                                        <div className="flex gap-3 justify-center flex-wrap">
+                                            <button
+                                                onClick={testNotificationNow}
+                                                disabled={!swReady}
+                                                className={`px-6 py-3 rounded-lg font-bold transition-all ${
+                                                    swReady 
+                                                        ? "bg-white/30 hover:bg-white/50 hover:scale-105" 
+                                                        : "bg-white/10 opacity-50 cursor-not-allowed"
+                                                }`}
+                                            >
+                                                🔔 اختبار فوري
+                                            </button>
+                                            
+                                            <button
+                                                onClick={scheduleTestNotification}
+                                                disabled={!swReady}
+                                                className={`px-6 py-3 rounded-lg font-bold transition-all ${
+                                                    swReady 
+                                                        ? "bg-white/30 hover:bg-white/50 hover:scale-105" 
+                                                        : "bg-white/10 opacity-50 cursor-not-allowed"
+                                                }`}
+                                            >
+                                                ⏰ اختبار بعد دقيقة
+                                            </button>
+                                            
+                                            <button
+                                                onClick={() => window.location.reload()}
+                                                className="bg-white/30 hover:bg-white/50 px-6 py-3 rounded-lg font-bold transition-all hover:scale-105"
+                                            >
+                                                🔄 إعادة تحميل
+                                            </button>
+                                        </div>
                                     </div>
                                 )}
                             </div>
