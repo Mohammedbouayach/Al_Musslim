@@ -62,112 +62,118 @@ export default function Salah() {
     const [testScheduled, setTestScheduled] = useState(false);
     const [testTime, setTestTime] = useState("");
 
-    // تسجيل Service Worker - نسخة محسّنة للإنتاج
+    // تسجيل Service Worker - نسخة مُحسّنة للإنتاج
     useEffect(() => {
         const initSW = async () => {
-            console.log('🚀 بدء تهيئة Service Worker...');
+            console.log('🚀 Starting SW initialization...');
             
-            // فحص الدعم
-            if (!("serviceWorker" in navigator)) {
-                setSwStatus("❌ المتصفح لا يدعم Service Worker");
-                console.error("Service Worker not supported");
-                return;
-            }
-
-            if (!("Notification" in window)) {
+            if (!("serviceWorker" in navigator) || !("Notification" in window)) {
                 setSwStatus("❌ المتصفح لا يدعم الإشعارات");
-                console.error("Notifications not supported");
                 return;
             }
 
             try {
-                setSwStatus("📝 تسجيل Service Worker...");
+                setSwStatus("🧹 تنظيف Service Workers القديمة...");
                 
-                // التأكد من المسار الصحيح
-                const swUrl = '/sw.js';
-                console.log('Registering SW from:', swUrl);
+                // حذف جميع SW القديمة
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                console.log('Found', registrations.length, 'old registrations');
+                
+                for (let reg of registrations) {
+                    console.log('Unregistering old SW:', reg.scope);
+                    await reg.unregister();
+                }
+                
+                // انتظار قليل
+                await new Promise(resolve => setTimeout(resolve, 1000));
 
-                // تسجيل Service Worker
-                const registration = await navigator.serviceWorker.register(swUrl, {
+                setSwStatus("📝 تسجيل Service Worker جديد...");
+                console.log('Registering new SW...');
+                
+                // تسجيل SW جديد
+                const registration = await navigator.serviceWorker.register('/sw.js', {
                     scope: '/',
                     updateViaCache: 'none'
                 });
                 
-                console.log('✅ Service Worker registered:', registration.scope);
-                setSwStatus("⏳ انتظار التفعيل...");
+                console.log('✅ SW registered:', registration);
 
-                // انتظار التفعيل
+                // إجبار التفعيل الفوري
+                if (registration.waiting) {
+                    console.log('⚡ Forcing skipWaiting...');
+                    registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+                }
+
                 if (registration.installing) {
                     console.log('SW is installing...');
+                    setSwStatus("⏳ جاري التثبيت...");
+                    
                     registration.installing.addEventListener('statechange', function(e) {
-                        console.log('SW state changed to:', e.target.state);
+                        console.log('SW state:', e.target.state);
+                        if (e.target.state === 'installed') {
+                            setSwStatus("⚡ التفعيل...");
+                        }
+                        if (e.target.state === 'activated') {
+                            setSwStatus("✅ مفعّل!");
+                        }
                     });
                 }
 
-                // انتظار ready
+                setSwStatus("⏳ انتظار التفعيل...");
                 await navigator.serviceWorker.ready;
-                console.log('✅ Service Worker is ready');
-                setSwStatus("🔗 الاتصال بالـ Controller...");
+                console.log('✅ SW is ready');
 
-                // انتظار controller - مع محاولات متعددة
-                let attempts = 0;
-                const maxAttempts = 30; // 15 ثانية
-                let controller = navigator.serviceWorker.controller;
-
-                while (!controller && attempts < maxAttempts) {
-                    console.log(`Waiting for controller... attempt ${attempts + 1}/${maxAttempts}`);
-                    await new Promise(resolve => setTimeout(resolve, 500));
-                    controller = navigator.serviceWorker.controller;
-                    attempts++;
+                // إعادة تحميل الصفحة إذا لم يكن controller متصل
+                if (!navigator.serviceWorker.controller) {
+                    console.log('⚠️ No controller, reloading...');
+                    setSwStatus("🔄 إعادة تحميل للتفعيل...");
+                    
+                    toast.info("🔄 إعادة تحميل للتفعيل الكامل...", {
+                        position: toast.POSITION.TOP_CENTER,
+                        autoClose: 2000,
+                    });
+                    
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 2000);
+                    return;
                 }
 
-                if (controller) {
-                    console.log('✅✅✅ Controller is ready!');
-                    setSwReady(true);
-                    setSwStatus("✅ جاهز!");
-                    
-                    toast.success("✅ نظام الإشعارات جاهز!", {
-                        position: toast.POSITION.TOP_CENTER,
-                        autoClose: 3000,
-                    });
+                console.log('✅✅✅ Controller is connected!');
+                setSwReady(true);
+                setSwStatus("✅ جاهز!");
+                
+                toast.success("✅ نظام الإشعارات جاهز!", {
+                    position: toast.POSITION.TOP_CENTER,
+                    autoClose: 2000,
+                });
 
-                    // طلب الإذن
-                    if (Notification.permission === "default") {
-                        const permission = await Notification.requestPermission();
-                        setNotificationPermission(permission === "granted");
-                    } else if (Notification.permission === "granted") {
-                        setNotificationPermission(true);
-                    }
-                } else {
-                    console.error('❌ Failed to get controller after', maxAttempts, 'attempts');
-                    setSwStatus("⚠️ يرجى إعادة تحميل الصفحة");
-                    
-                    toast.warn("⚠️ يرجى إعادة تحميل الصفحة (F5)", {
-                        position: toast.POSITION.TOP_CENTER,
-                        autoClose: 5000,
-                    });
+                // طلب الإذن
+                if (Notification.permission === "default") {
+                    const permission = await Notification.requestPermission();
+                    setNotificationPermission(permission === "granted");
+                } else if (Notification.permission === "granted") {
+                    setNotificationPermission(true);
                 }
 
             } catch (error) {
                 console.error('❌ SW Error:', error);
                 setSwStatus("❌ خطأ: " + error.message);
-                
                 toast.error("❌ خطأ في تفعيل الإشعارات", {
                     position: toast.POSITION.TOP_CENTER,
                 });
             }
         };
 
-        // بدء التهيئة بعد تحميل الصفحة
-        if (document.readyState === 'complete') {
+        // تأخير التهيئة قليلاً للتأكد من تحميل كل شي
+        const timer = setTimeout(() => {
             initSW();
-        } else {
-            window.addEventListener('load', initSW);
-            return () => window.removeEventListener('load', initSW);
-        }
+        }, 1000);
+
+        return () => clearTimeout(timer);
     }, []);
 
-    // إرسال أوقات الصلاة للـ SW
+    // إرسال أوقات الصلاة
     useEffect(() => {
         if (swReady && notificationPermission && timings.Fajr !== "00:00" && !testScheduled) {
             const controller = navigator.serviceWorker.controller;
@@ -176,9 +182,9 @@ export default function Salah() {
                     type: "SET_PRAYER_TIMINGS",
                     timings: timings,
                 });
-                console.log("📤 أوقات الصلاة المرسلة:", timings);
+                console.log("📤 Prayer timings sent");
                 
-                toast.success("📅 تم تحديث أوقات الصلاة ✅", {
+                toast.success("📅 تم تحديث أوقات الصلاة", {
                     position: toast.POSITION.TOP_CENTER,
                     autoClose: 2000,
                 });
@@ -189,7 +195,7 @@ export default function Salah() {
     // اختبار فوري
     const testNotificationNow = async () => {
         if (!swReady) {
-            toast.error("❌ Service Worker غير جاهز\n\nجرب إعادة تحميل الصفحة", {
+            toast.error("❌ يرجى الانتظار حتى يصبح النظام جاهز", {
                 position: toast.POSITION.TOP_CENTER,
             });
             return;
@@ -209,7 +215,7 @@ export default function Salah() {
         const controller = navigator.serviceWorker.controller;
         if (controller) {
             controller.postMessage({ type: "TEST_NOW" });
-            toast.success("✅ تم إرسال إشعار اختبار!", {
+            toast.success("✅ تم إرسال إشعار!", {
                 position: toast.POSITION.TOP_CENTER,
             });
         }
@@ -218,7 +224,7 @@ export default function Salah() {
     // اختبار بعد دقيقة
     const scheduleTestNotification = async () => {
         if (!swReady) {
-            toast.error("❌ Service Worker غير جاهز", {
+            toast.error("❌ يرجى الانتظار", {
                 position: toast.POSITION.TOP_CENTER,
             });
             return;
@@ -255,14 +261,13 @@ export default function Salah() {
             setTestScheduled(true);
             setTestTime(testTimeStr);
 
-            toast.success(`⏰ سيصل إشعار على الساعة: ${testTimeStr}\n\nيمكنك إغلاق التطبيق الآن!`, {
+            toast.success(`⏰ سيصل إشعار على: ${testTimeStr}`, {
                 position: toast.POSITION.TOP_CENTER,
-                autoClose: 8000,
+                autoClose: 5000,
             });
         }
     };
 
-    // إلغاء الاختبار
     const cancelTest = () => {
         const controller = navigator.serviceWorker.controller;
         if (controller) {
@@ -272,7 +277,7 @@ export default function Salah() {
             });
             setTestScheduled(false);
             setTestTime("");
-            toast.info("✅ تم إلغاء الاختبار", {
+            toast.info("✅ تم الإلغاء", {
                 position: toast.POSITION.TOP_CENTER,
             });
         }
@@ -356,7 +361,6 @@ export default function Salah() {
         return () => clearInterval(interval);
     }, [timings]);
 
-    // جلب أوقات الصلاة
     useEffect(() => {
         setLoadingScreen(true);
         let date = new Date();
@@ -471,7 +475,6 @@ export default function Salah() {
                     <Loader />
                 ) : (
                     <>
-                        {/* شريط الاختبار */}
                         <div className="container px-5 m-auto mb-5">
                             <div className={`p-4 rounded-xl shadow-lg transition-all ${
                                 testScheduled 
@@ -482,14 +485,12 @@ export default function Salah() {
                             }`}>
                                 {testScheduled ? (
                                     <div className="text-center">
-                                        <div className="text-2xl font-bold mb-2">
-                                            ⏰ اختبار مجدول!
-                                        </div>
+                                        <div className="text-2xl font-bold mb-2">⏰ اختبار مجدول!</div>
                                         <div className="text-lg mb-3">
                                             إشعار على: <span className="font-mono font-bold">{testTime}</span>
                                         </div>
                                         <div className="text-sm opacity-90 mb-3">
-                                            يمكنك إغلاق التطبيق - سيصل الإشعار! 🚀
+                                            يمكنك إغلاق التطبيق! 🚀
                                         </div>
                                         <button
                                             onClick={cancelTest}
@@ -562,19 +563,13 @@ export default function Salah() {
                                             <span>أذان {prayer.displayName}</span>
                                         </span>
                                         <span className="block font-sans text-2xl">
-                                            {moment(timings[prayer.key], ["HH:mm"]).format(
-                                                "hh:mm A"
-                                            )}
+                                            {moment(timings[prayer.key], ["HH:mm"]).format("hh:mm A")}
                                         </span>
                                         {nextPrayerIndex === index && (
                                             <>
-                                                <span className="block mt-3 text-sm opacity-90">
-                                                    ⏰ الصلاة التالية
-                                                </span>
+                                                <span className="block mt-3 text-sm opacity-90">⏰ الصلاة التالية</span>
                                                 <span className="block font-sans text-3xl font-bold animate-pulse">
-                                                    {remainingPrayerTime.h}:
-                                                    {remainingPrayerTime.m}:
-                                                    {remainingPrayerTime.s}
+                                                    {remainingPrayerTime.h}:{remainingPrayerTime.m}:{remainingPrayerTime.s}
                                                 </span>
                                             </>
                                         )}
@@ -607,19 +602,13 @@ export default function Salah() {
                                                 {ramadanTime.displayName}
                                             </span>
                                             <span className="block font-sans text-2xl">
-                                                {moment(timings[ramadanTime.key], [
-                                                    "HH:mm",
-                                                ]).format("hh:mm A")}
+                                                {moment(timings[ramadanTime.key], ["HH:mm"]).format("hh:mm A")}
                                             </span>
                                             {nextRamadanIndex === index && (
                                                 <>
-                                                    <span className="block mt-3 text-sm opacity-90">
-                                                        ⏰ الوقت التالي
-                                                    </span>
+                                                    <span className="block mt-3 text-sm opacity-90">⏰ الوقت التالي</span>
                                                     <span className="block font-sans text-3xl font-bold animate-pulse">
-                                                        {remainingRamadanTime.h}:
-                                                        {remainingRamadanTime.m}:
-                                                        {remainingRamadanTime.s}
+                                                        {remainingRamadanTime.h}:{remainingRamadanTime.m}:{remainingRamadanTime.s}
                                                     </span>
                                                 </>
                                             )}
