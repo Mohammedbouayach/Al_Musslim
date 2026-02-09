@@ -18,13 +18,12 @@ importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-comp
 // ============================================
 
 const firebaseConfig = {
- apiKey: "AIzaSyC8IapFk7JPPcrAQ78xaOPVbz9RlUwR_ag",
-  authDomain: "almuslim-b308c.firebaseapp.com",
-  projectId: "almuslim-b308c",
-  storageBucket: "almuslim-b308c.firebasestorage.app",
-  messagingSenderId: "874573656499",
-  appId: "1:874573656499:web:a22b11c52d4444abbe9bc6",
-  measurementId: "G-LBV30LPJDE"
+  apiKey: "YOUR_API_KEY_HERE",                    // من .env.local
+  authDomain: "YOUR_AUTH_DOMAIN_HERE",            // من .env.local  
+  projectId: "YOUR_PROJECT_ID_HERE",              // من .env.local
+  storageBucket: "YOUR_STORAGE_BUCKET_HERE",      // من .env.local
+  messagingSenderId: "YOUR_MESSAGING_SENDER_ID_HERE",  // من .env.local
+  appId: "YOUR_APP_ID_HERE"                       // من .env.local
 };
 
 // ⚠️ بعد التحديث، احفظ الملف وأعد تحميل التطبيق بـ Ctrl+Shift+R
