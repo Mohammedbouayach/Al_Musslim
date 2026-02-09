@@ -9,11 +9,21 @@ import "react-toastify/dist/ReactToastify.css";
 import Loader from "@/components/Layout/Loader";
 import Landing from "../Layout/Landing";
 import { useRamadan } from "@/context/ramadanContext";
+import { useFirebaseNotifications } from "@/hooks/useFirebaseNotifications";
 
 moment.locale("ar");
 
 export default function Salah() {
     const { ramadan } = useRamadan();
+    
+    // Firebase Notifications Hook
+    const { 
+        fcmToken, 
+        notificationPermission, 
+        loading: fcmLoading,
+        requestPermission,
+        listenForMessages 
+    } = useFirebaseNotifications();
 
     const [timings, setTimings] = useState({
         Fajr: "00:00",
@@ -56,198 +66,97 @@ export default function Salah() {
     const [refreshGps, setRefreshGps] = useState(true);
     const [btnError, setBtnError] = useState(null);
     const [loadingScreen, setLoadingScreen] = useState(true);
-    const [notificationPermission, setNotificationPermission] = useState(false);
-    const [swReady, setSwReady] = useState(false);
-    const [swStatus, setSwStatus] = useState("جاري التحميل...");
     const [testScheduled, setTestScheduled] = useState(false);
     const [testTime, setTestTime] = useState("");
 
-    // تسجيل Service Worker - نسخة مُحسّنة للإنتاج
+    // تسجيل Firebase Service Worker
     useEffect(() => {
-        const initSW = async () => {
-            console.log('🚀 Starting SW initialization...');
-            
-            if (!("serviceWorker" in navigator) || !("Notification" in window)) {
-                setSwStatus("❌ المتصفح لا يدعم الإشعارات");
-                return;
-            }
+        const registerFirebaseSW = async () => {
+            if (!('serviceWorker' in navigator)) return;
 
             try {
-                setSwStatus("🧹 تنظيف Service Workers القديمة...");
-                
-                // حذف جميع SW القديمة
+                // إلغاء تسجيل Service Workers القديمة
                 const registrations = await navigator.serviceWorker.getRegistrations();
-                console.log('Found', registrations.length, 'old registrations');
-                
-                for (let reg of registrations) {
-                    console.log('Unregistering old SW:', reg.scope);
-                    await reg.unregister();
-                }
-                
-                // انتظار قليل
-                await new Promise(resolve => setTimeout(resolve, 1000));
-
-                setSwStatus("📝 تسجيل Service Worker جديد...");
-                console.log('Registering new SW...');
-                
-                // تسجيل SW جديد
-                const registration = await navigator.serviceWorker.register('/sw.js', {
-                    scope: '/',
-                    updateViaCache: 'none'
-                });
-                
-                console.log('✅ SW registered:', registration);
-
-                // إجبار التفعيل الفوري
-                if (registration.waiting) {
-                    console.log('⚡ Forcing skipWaiting...');
-                    registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+                for (let registration of registrations) {
+                    if (registration.active?.scriptURL.includes('sw.js')) {
+                        await registration.unregister();
+                        console.log('🧹 تم إلغاء Service Worker القديم');
+                    }
                 }
 
-                if (registration.installing) {
-                    console.log('SW is installing...');
-                    setSwStatus("⏳ جاري التثبيت...");
-                    
-                    registration.installing.addEventListener('statechange', function(e) {
-                        console.log('SW state:', e.target.state);
-                        if (e.target.state === 'installed') {
-                            setSwStatus("⚡ التفعيل...");
-                        }
-                        if (e.target.state === 'activated') {
-                            setSwStatus("✅ مفعّل!");
-                        }
-                    });
-                }
-
-                setSwStatus("⏳ انتظار التفعيل...");
+                // تسجيل Firebase Service Worker الجديد
+                const registration = await navigator.serviceWorker.register(
+                    '/firebase-messaging-sw.js',
+                    { scope: '/' }
+                );
+                
                 await navigator.serviceWorker.ready;
-                console.log('✅ SW is ready');
-
-                // إعادة تحميل الصفحة إذا لم يكن controller متصل
-                if (!navigator.serviceWorker.controller) {
-                    console.log('⚠️ No controller, reloading...');
-                    setSwStatus("🔄 إعادة تحميل للتفعيل...");
-                    
-                    toast.info("🔄 إعادة تحميل للتفعيل الكامل...", {
-                        position: toast.POSITION.TOP_CENTER,
-                        autoClose: 2000,
-                    });
-                    
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 2000);
-                    return;
-                }
-
-                console.log('✅✅✅ Controller is connected!');
-                setSwReady(true);
-                setSwStatus("✅ جاهز!");
-                
-                toast.success("✅ نظام الإشعارات جاهز!", {
-                    position: toast.POSITION.TOP_CENTER,
-                    autoClose: 2000,
-                });
-
-                // طلب الإذن
-                if (Notification.permission === "default") {
-                    const permission = await Notification.requestPermission();
-                    setNotificationPermission(permission === "granted");
-                } else if (Notification.permission === "granted") {
-                    setNotificationPermission(true);
-                }
+                console.log('✅ Firebase Service Worker مسجل بنجاح!');
 
             } catch (error) {
-                console.error('❌ SW Error:', error);
-                setSwStatus("❌ خطأ: " + error.message);
-                toast.error("❌ خطأ في تفعيل الإشعارات", {
-                    position: toast.POSITION.TOP_CENTER,
-                });
+                console.error('خطأ في تسجيل Firebase SW:', error);
             }
         };
 
-        // تأخير التهيئة قليلاً للتأكد من تحميل كل شي
-        const timer = setTimeout(() => {
-            initSW();
-        }, 1000);
-
-        return () => clearTimeout(timer);
+        registerFirebaseSW();
     }, []);
 
-    // إرسال أوقات الصلاة
+    // الاستماع للرسائل في المقدمة
     useEffect(() => {
-        if (swReady && notificationPermission && timings.Fajr !== "00:00" && !testScheduled) {
-            const controller = navigator.serviceWorker.controller;
-            if (controller) {
-                controller.postMessage({
-                    type: "SET_PRAYER_TIMINGS",
-                    timings: timings,
-                });
-                console.log("📤 Prayer timings sent");
-                
-                toast.success("📅 تم تحديث أوقات الصلاة", {
-                    position: toast.POSITION.TOP_CENTER,
-                    autoClose: 2000,
-                });
-            }
-        }
-    }, [swReady, notificationPermission, timings, testScheduled]);
-
-    // اختبار فوري
-    const testNotificationNow = async () => {
-        if (!swReady) {
-            toast.error("❌ يرجى الانتظار حتى يصبح النظام جاهز", {
-                position: toast.POSITION.TOP_CENTER,
+        if (notificationPermission) {
+            listenForMessages((payload) => {
+                console.log('📬 رسالة واردة:', payload);
             });
-            return;
         }
+    }, [notificationPermission]);
 
-        if (Notification.permission !== "granted") {
-            const permission = await Notification.requestPermission();
-            if (permission !== "granted") {
-                toast.error("❌ يرجى السماح بالإشعارات!", {
-                    position: toast.POSITION.TOP_CENTER,
-                });
-                return;
-            }
-            setNotificationPermission(true);
-        }
-
-        const controller = navigator.serviceWorker.controller;
-        if (controller) {
-            controller.postMessage({ type: "TEST_NOW" });
-            toast.success("✅ تم إرسال إشعار!", {
-                position: toast.POSITION.TOP_CENTER,
+    // إرسال أوقات الصلاة للـ Service Worker
+    useEffect(() => {
+        if (notificationPermission && timings.Fajr !== "00:00" && navigator.serviceWorker.controller) {
+            navigator.serviceWorker.controller.postMessage({
+                type: "SET_PRAYER_TIMINGS",
+                timings: timings,
             });
+            console.log("✅ تم إرسال أوقات الصلاة:", timings);
+        }
+    }, [notificationPermission, timings]);
+
+    // زر تفعيل الإشعارات
+    const enableNotifications = async () => {
+        const token = await requestPermission();
+        if (token) {
+            console.log('✅ FCM Token:', token);
+            
+            // يمكنك حفظ Token في قاعدة البيانات هنا
+            // لإرسال إشعارات من السيرفر لاحقاً
         }
     };
 
-    // اختبار بعد دقيقة
+    // زر اختبار الإشعار (بعد دقيقة واحدة)
     const scheduleTestNotification = async () => {
-        if (!swReady) {
-            toast.error("❌ يرجى الانتظار", {
-                position: toast.POSITION.TOP_CENTER,
-            });
+        if (!notificationPermission) {
+            await enableNotifications();
             return;
         }
 
-        if (Notification.permission !== "granted") {
-            const permission = await Notification.requestPermission();
-            if (permission !== "granted") {
-                toast.error("❌ يرجى السماح بالإشعارات!", {
+        try {
+            const registration = await navigator.serviceWorker.ready;
+            
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            if (!navigator.serviceWorker.controller) {
+                toast.info("🔄 جاري تحميل Service Worker... انتظر قليلاً", {
                     position: toast.POSITION.TOP_CENTER,
                 });
+                window.location.reload();
                 return;
             }
-            setNotificationPermission(true);
-        }
 
-        const now = new Date();
-        now.setMinutes(now.getMinutes() + 1);
-        const testTimeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+            const now = new Date();
+            now.setMinutes(now.getMinutes() + 1);
+            const testTimeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
 
-        const controller = navigator.serviceWorker.controller;
-        if (controller) {
-            controller.postMessage({
+            navigator.serviceWorker.controller.postMessage({
                 type: "SET_PRAYER_TIMINGS",
                 timings: {
                     Fajr: testTimeStr,
@@ -261,23 +170,32 @@ export default function Salah() {
             setTestScheduled(true);
             setTestTime(testTimeStr);
 
-            toast.success(`⏰ سيصل إشعار على: ${testTimeStr}`, {
+            toast.success(`⏰ تم جدولة إشعار اختبار!\n\nسيظهر إشعار "صلاة الفجر" على الساعة: ${testTimeStr}\n\nانتظر دقيقة واحدة... 🕐`, {
                 position: toast.POSITION.TOP_CENTER,
-                autoClose: 5000,
+                autoClose: 8000,
+            });
+
+            console.log(`⏰ إشعار اختبار مجدول على: ${testTimeStr}`);
+        } catch (error) {
+            console.error("خطأ:", error);
+            toast.error("❌ خطأ! جرب إعادة تحميل الصفحة", {
+                position: toast.POSITION.TOP_CENTER,
             });
         }
     };
 
+    // إلغاء الاختبار
     const cancelTest = () => {
-        const controller = navigator.serviceWorker.controller;
-        if (controller) {
-            controller.postMessage({
+        if (navigator.serviceWorker.controller) {
+            navigator.serviceWorker.controller.postMessage({
                 type: "SET_PRAYER_TIMINGS",
                 timings: timings,
             });
+
             setTestScheduled(false);
             setTestTime("");
-            toast.info("✅ تم الإلغاء", {
+
+            toast.info("✅ تم إلغاء الاختبار وإعادة الأوقات الحقيقية", {
                 position: toast.POSITION.TOP_CENTER,
             });
         }
@@ -361,6 +279,7 @@ export default function Salah() {
         return () => clearInterval(interval);
     }, [timings]);
 
+    // جلب أوقات الصلاة
     useEffect(() => {
         setLoadingScreen(true);
         let date = new Date();
@@ -475,72 +394,69 @@ export default function Salah() {
                     <Loader />
                 ) : (
                     <>
+                        {/* شريط الإشعارات */}
                         <div className="container px-5 m-auto mb-5">
                             <div className={`p-4 rounded-xl shadow-lg transition-all ${
                                 testScheduled 
                                     ? "bg-gradient-to-r from-orange-500 to-red-500 text-white animate-pulse" 
-                                    : notificationPermission && swReady
+                                    : notificationPermission
                                     ? "bg-gradient-to-r from-green-500 to-lime-500 text-white"
-                                    : "bg-gradient-to-r from-gray-500 to-gray-600 text-white"
+                                    : "bg-gradient-to-r from-blue-500 to-purple-500 text-white"
                             }`}>
                                 {testScheduled ? (
                                     <div className="text-center">
-                                        <div className="text-2xl font-bold mb-2">⏰ اختبار مجدول!</div>
+                                        <div className="text-2xl font-bold mb-2">
+                                            ⏰ اختبار جاري...
+                                        </div>
                                         <div className="text-lg mb-3">
-                                            إشعار على: <span className="font-mono font-bold">{testTime}</span>
+                                            سيظهر إشعار "صلاة الفجر" على الساعة: <span className="font-mono font-bold">{testTime}</span>
                                         </div>
                                         <div className="text-sm opacity-90 mb-3">
-                                            يمكنك إغلاق التطبيق! 🚀
+                                            ⏳ انتظر دقيقة واحدة... (حتى لو أغلقت التطبيق!)
                                         </div>
                                         <button
                                             onClick={cancelTest}
-                                            className="bg-white/30 hover:bg-white/50 px-6 py-2 rounded-lg font-bold"
+                                            className="bg-white/30 hover:bg-white/50 px-6 py-2 rounded-lg font-bold transition-all"
                                         >
-                                            ❌ إلغاء
+                                            ❌ إلغاء الاختبار
                                         </button>
                                     </div>
                                 ) : (
-                                    <div>
-                                        <div className="text-center mb-4">
-                                            <div className="text-2xl font-bold mb-2">
-                                                🔔 {swReady && notificationPermission ? "الإشعارات مفعلة ✅" : "حالة النظام"}
+                                    <div className="flex items-center justify-center gap-3 flex-wrap">
+                                        <span className="text-2xl">🔥</span>
+                                        <div className="flex-1 min-w-[200px] text-center">
+                                            <div className="font-bold text-lg">
+                                                {notificationPermission ? "Firebase مفعل ✅" : "قم بتفعيل الإشعارات"}
                                             </div>
-                                            <div className="text-sm opacity-90 bg-white/20 rounded px-3 py-1 inline-block">
-                                                {swStatus}
+                                            <div className="text-sm opacity-90">
+                                                {notificationPermission 
+                                                    ? "ستتلقى إشعاراً عند كل صلاة - مدعوم بـ Firebase"
+                                                    : "إشعارات قوية وموثوقة من Firebase Cloud Messaging"}
                                             </div>
+                                            {fcmToken && (
+                                                <div className="text-xs opacity-75 mt-1 font-mono truncate">
+                                                    Token: {fcmToken.substring(0, 20)}...
+                                                </div>
+                                            )}
                                         </div>
-                                        
-                                        <div className="flex gap-3 justify-center flex-wrap">
-                                            <button
-                                                onClick={testNotificationNow}
-                                                disabled={!swReady}
-                                                className={`px-6 py-3 rounded-lg font-bold transition-all ${
-                                                    swReady 
-                                                        ? "bg-white/30 hover:bg-white/50 hover:scale-105" 
-                                                        : "bg-white/10 opacity-50 cursor-not-allowed"
-                                                }`}
-                                            >
-                                                🔔 اختبار فوري
-                                            </button>
-                                            
-                                            <button
-                                                onClick={scheduleTestNotification}
-                                                disabled={!swReady}
-                                                className={`px-6 py-3 rounded-lg font-bold transition-all ${
-                                                    swReady 
-                                                        ? "bg-white/30 hover:bg-white/50 hover:scale-105" 
-                                                        : "bg-white/10 opacity-50 cursor-not-allowed"
-                                                }`}
-                                            >
-                                                ⏰ اختبار بعد دقيقة
-                                            </button>
-                                            
-                                            <button
-                                                onClick={() => window.location.reload()}
-                                                className="bg-white/30 hover:bg-white/50 px-6 py-3 rounded-lg font-bold transition-all hover:scale-105"
-                                            >
-                                                🔄 إعادة تحميل
-                                            </button>
+                                        <div className="flex gap-2">
+                                            {!notificationPermission && (
+                                                <button
+                                                    onClick={enableNotifications}
+                                                    className="bg-white/30 hover:bg-white/50 px-6 py-3 rounded-lg font-bold text-lg transition-all hover:scale-105 shadow-lg"
+                                                >
+                                                    🔔 تفعيل الإشعارات
+                                                </button>
+                                            )}
+                                            {notificationPermission && (
+                                                <button
+                                                    onClick={scheduleTestNotification}
+                                                    className="bg-white/30 hover:bg-white/50 px-6 py-3 rounded-lg font-bold text-lg transition-all hover:scale-105 shadow-lg"
+                                                >
+                                                    🧪 اختبار الآن<br/>
+                                                    <span className="text-sm">(إشعار بعد دقيقة)</span>
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
                                 )}
@@ -563,13 +479,19 @@ export default function Salah() {
                                             <span>أذان {prayer.displayName}</span>
                                         </span>
                                         <span className="block font-sans text-2xl">
-                                            {moment(timings[prayer.key], ["HH:mm"]).format("hh:mm A")}
+                                            {moment(timings[prayer.key], ["HH:mm"]).format(
+                                                "hh:mm A"
+                                            )}
                                         </span>
                                         {nextPrayerIndex === index && (
                                             <>
-                                                <span className="block mt-3 text-sm opacity-90">⏰ الصلاة التالية</span>
+                                                <span className="block mt-3 text-sm opacity-90">
+                                                    ⏰ الصلاة التالية
+                                                </span>
                                                 <span className="block font-sans text-3xl font-bold animate-pulse">
-                                                    {remainingPrayerTime.h}:{remainingPrayerTime.m}:{remainingPrayerTime.s}
+                                                    {remainingPrayerTime.h}:
+                                                    {remainingPrayerTime.m}:
+                                                    {remainingPrayerTime.s}
                                                 </span>
                                             </>
                                         )}
@@ -602,13 +524,19 @@ export default function Salah() {
                                                 {ramadanTime.displayName}
                                             </span>
                                             <span className="block font-sans text-2xl">
-                                                {moment(timings[ramadanTime.key], ["HH:mm"]).format("hh:mm A")}
+                                                {moment(timings[ramadanTime.key], [
+                                                    "HH:mm",
+                                                ]).format("hh:mm A")}
                                             </span>
                                             {nextRamadanIndex === index && (
                                                 <>
-                                                    <span className="block mt-3 text-sm opacity-90">⏰ الوقت التالي</span>
+                                                    <span className="block mt-3 text-sm opacity-90">
+                                                        ⏰ الوقت التالي
+                                                    </span>
                                                     <span className="block font-sans text-3xl font-bold animate-pulse">
-                                                        {remainingRamadanTime.h}:{remainingRamadanTime.m}:{remainingRamadanTime.s}
+                                                        {remainingRamadanTime.h}:
+                                                        {remainingRamadanTime.m}:
+                                                        {remainingRamadanTime.s}
                                                     </span>
                                                 </>
                                             )}
