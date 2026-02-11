@@ -72,7 +72,7 @@ export default function Salah() {
     // تسجيل Firebase Service Worker
     useEffect(() => {
         const registerFirebaseSW = async () => {
-            if (!('serviceWorker' in navigator)) return;
+            if (!('serviceWorker' in navigator)) return;f
 
             try {
                 // إلغاء تسجيل Service Workers القديمة
