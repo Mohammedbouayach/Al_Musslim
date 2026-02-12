@@ -24,7 +24,9 @@ const firebaseConfig = {
   storageBucket: "almuslim-b308c.firebasestorage.app",
   messagingSenderId: "874573656499",
   appId: "1:874573656499:web:a22b11c52d4444abbe9bc6",
-  measurementId: "G-LBV30LPJDE"
+  measurementId: "G-LBV30LPJDE",
+  vapidkey: "BGHGiXm86DTPhwpdf2PFMSSD2Cw7wLyePd7FBVwfzW_HDmCyWyQRw8bWjSuStGXBBNq2cdf6Cpg5lGuZoP32fEI"
+
 };
 
 // ⚠️ بعد التحديث، احفظ الملف وأعد تحميل التطبيق بـ Ctrl+Shift+R
