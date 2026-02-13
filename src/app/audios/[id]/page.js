@@ -195,7 +195,7 @@ export default async function _({ params }) {
                 <a
                     href={item.attachments?.[0]?.url || '#'}
                     download
-                    className="flex items-center justify-center px-4 py-3 text-sm font-medium text-center text-white bg-gradient-to-r from-orange-600 to-lime-500 rounded-lg hover:opacity-90 transition-opacity"
+                    className="flex items-center justify-center px-4 py-3 text-sm font-medium text-center text-white bg-gradient-to-r from-orange-600 to-orange-500 rounded-lg hover:opacity-90 transition-opacity"
                 >
                     <FontAwesomeIcon icon={faDownload} />
                 </a>

@@ -68,19 +68,19 @@ export default function Azekar() {
                     مرات
                 </div>
                 <div className="w-full whitespace-nowrap bg-gray-600 text-white rounded-xl flex justify-between items-center">
-                    <span onClick={() => incrementCount(index)} className="p-3 bg-lime-600 flex cursor-pointer items-center rounded-xl">
+                    <span onClick={() => incrementCount(index)} className="p-3 bg-orange-600 flex cursor-pointer items-center rounded-xl">
                         <FontAwesomeIcon className="text-ml" icon={faPlus} />
                     </span>
 
                     <span className="font-sans text-xl">{counts[index]}</span>
 
-                    <span onClick={() => resetCount(index)} className="p-3 bg-lime-600 flex cursor-pointer items-center rounded-xl">
+                    <span onClick={() => resetCount(index)} className="p-3 bg-orange-600 flex cursor-pointer items-center rounded-xl">
                         <FontAwesomeIcon className="text-ml" icon={faArrowRightRotate} />
                     </span>
                 </div>
                 <div
                     onClick={() => toggleExpanded(index)}
-                    className="p-3 bg-lime-600 flex items-center cursor-pointer rounded-xl text-white">
+                    className="p-3 bg-orange-600 flex items-center cursor-pointer rounded-xl text-white">
                     <FontAwesomeIcon icon={expanded[index] ? faBook : faBookOpen} />
                 </div>
             </div>

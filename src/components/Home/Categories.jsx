@@ -84,8 +84,8 @@ export default function Categories() {
             "قسم الفتاوى": "from-rose-500 to-pink-600",
             "قسم المحاضرات الصوتية": "from-orange-500 to-amber-600",
             "قسم المحاضرات المرئية": "from-orange-500 to-amber-600",
-            "ما لا يسع أطفال المسلمين جهله": "from-lime-500 to-orange-600",
-            "زكاة المال": "from-lime-500 to-orange-600",
+            "ما لا يسع أطفال المسلمين جهله": "from-orange-500 to-orange-600",
+            "زكاة المال": "from-orange-500 to-orange-600",
         };
 
         // ترجع لون الخلفية المطابق أو لون افتراضي إن لم يُعرّف القسم

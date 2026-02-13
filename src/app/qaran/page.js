@@ -39,14 +39,14 @@ export default async function qaran() {
                             <div className="p-6">
                                 <Link
                                     href={`/qaran/listen`}
-                                    className="flex items-center justify-center w-full py-4 px-6 bg-gradient-to-r from-orange-600 to-lime-500 hover:from-orange-700 hover:to-lime-600 text-white font-medium rounded-xl transition-all duration-300 transform hover:scale-[1.02] active:scale-95 shadow-lg hover:shadow-xl">
+                                    className="flex items-center justify-center w-full py-4 px-6 bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-700 hover:to-orange-600 text-white font-medium rounded-xl transition-all duration-300 transform hover:scale-[1.02] active:scale-95 shadow-lg hover:shadow-xl">
                                     <span>ابدأ الاستماع الآن</span>
                                     <FontAwesomeIcon className="mr-3 text-xl" icon={faHeadphonesSimple} />
                                 </Link>
                             </div>
 
                             <div className="absolute top-4 right-4 bg-orange-500 text-white text-xs font-bold px-3 py-1 rounded-full">
-                                جديد
+                                مميز
                             </div>
                         </div>
 
@@ -59,10 +59,10 @@ export default async function qaran() {
                                     className="object-cover transition-transform duration-700 group-hover:scale-110"
                                     alt="memorizing qaran"
                                 />
-                                <div className="absolute inset-0 bg-gradient-to-t from-lime-900/80 to-transparent opacity-80"></div>
+                                <div className="absolute inset-0 bg-gradient-to-t from-orange-900/80 to-transparent opacity-80"></div>
                                 <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
                                     <h3 className="text-2xl font-bold mb-2" >وضع القرائة و التفسير</h3>
-                                    <p className="text-lime-100">
+                                    <p className="text-orange-100">
                                         اقرأ وتدبر معاني القرآن الكريم مع خيارات تفسير متعددة
                                     </p>
                                 </div>
@@ -71,14 +71,14 @@ export default async function qaran() {
                             <div className="p-6">
                                 <Link
                                     href={`/qaran/reading`}
-                                    className="flex items-center justify-center w-full py-4 px-6 bg-gradient-to-r from-lime-600 to-orange-500 hover:from-lime-700 hover:to-orange-600 text-white font-medium rounded-xl transition-all duration-300 transform hover:scale-[1.02] active:scale-95 shadow-lg hover:shadow-xl">
+                                    className="flex items-center justify-center w-full py-4 px-6 bg-gradient-to-r from-orange-600 to-orange-400 hover:from-orange-700 hover:to-orange-600 text-white font-medium rounded-xl transition-all duration-300 transform hover:scale-[1.02] active:scale-95 shadow-lg hover:shadow-xl">
                                     <span>ابدأ القراءة الآن</span>
                                     <FontAwesomeIcon className="mr-3 text-xl" icon={faMicrophoneLines} />
                                 </Link>
                             </div>
 
-                            <div className="absolute top-4 right-4 bg-lime-500 text-white text-xs font-bold px-3 py-1 rounded-full">
-                                مميز
+                            <div className="absolute top-4 right-4 bg-orange-500 text-white text-xs font-bold px-3 py-1 rounded-full">
+                                جديد
                             </div>
                         </div>
                     </div>
@@ -95,8 +95,8 @@ export default async function qaran() {
                             </div>
 
                             <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md">
-                                <div className="w-12 h-12 bg-lime-100 dark:bg-lime-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
-                                    <FontAwesomeIcon icon={faMicrophoneLines} className="text-lime-600 dark:text-lime-400 text-xl" />
+                                <div className="w-12 h-12 bg-orange-100 dark:bg-orange-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <FontAwesomeIcon icon={faMicrophoneLines} className="text-orange-600 dark:text-orange-400 text-xl" />
                                 </div>
                                 <h3 className="font-bold text-lg text-gray-800 dark:text-white mb-2">أدوات حفظ متقدمة</h3>
                                 <p className="text-gray-600 dark:text-gray-300">حدد الآيات، كرر التلاوة، وتتبع تقدمك</p>

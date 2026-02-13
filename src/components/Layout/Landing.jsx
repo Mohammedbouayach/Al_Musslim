@@ -14,7 +14,7 @@ export default function Landing({ title, text }) {
             <div className="relative z-10 container mx-auto px-6 text-center">
                 {/* أيقونة مزخرفة */}
                 <div className="flex justify-center mb-6">
-                    <div className="w-20 h-20 flex items-center justify-center rounded-full bg-gradient-to-br from-lime-100 to-lime-200 dark:from-lime-900/40 dark:to-lime-800/60 shadow-lg border border-lime-200 dark:border-lime-800">
+                    <div className="w-20 h-20 flex items-center justify-center rounded-full bg-gradient-to-br from-orange-100 to-orange-200 dark:from-orange-900/40 dark:to-orange-800/60 shadow-lg border border-orange-200 dark:border-orange-800">
                         {/* <FontAwesomeIcon
                             icon={faMosque}
                             className="text-amber-600 dark:text-amber-400 text-4xl"

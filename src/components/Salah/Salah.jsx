@@ -10,6 +10,7 @@ import Loader from "@/components/Layout/Loader";
 import Landing from "../Layout/Landing";
 import { useRamadan } from "@/context/ramadanContext";
 import { useFirebaseNotifications } from "@/hooks/useFirebaseNotifications";
+import { usePrayerNotifications } from "@/app/hooks/usePrayerNotifications";
 
 moment.locale("ar");
 
@@ -34,6 +35,7 @@ export default function Salah() {
         Lastthird: "00:00",
         Imsak: "00:00",
     });
+  
 
     const prayersArray = [
         { key: "Fajr", css: "Fajr", displayName: "الفجر" },
@@ -68,138 +70,293 @@ export default function Salah() {
     const [loadingScreen, setLoadingScreen] = useState(true);
     const [testScheduled, setTestScheduled] = useState(false);
     const [testTime, setTestTime] = useState("");
+    const [swReady, setSwReady] = useState(false);
+    const { sendToSW } = usePrayerNotifications(timings, notificationPermission);
 
-    // تسجيل Firebase Service Worker
+    // ============================================
+    // تسجيل Service Worker بشكل صحيح
+    // ============================================
+    
     useEffect(() => {
-        const registerFirebaseSW = async () => {
-            if (!('serviceWorker' in navigator)) return;f
+        if (typeof window === 'undefined') return;
+        if (!('serviceWorker' in navigator)) {
+            console.log('❌ المتصفح لا يدعم Service Workers');
+            return;
+        }
 
+        const registerSW = async () => {
             try {
-                // إلغاء تسجيل Service Workers القديمة
+                // 1. إلغاء جميع Service Workers القديمة
                 const registrations = await navigator.serviceWorker.getRegistrations();
-                for (let registration of registrations) {
-                    if (registration.active?.scriptURL.includes('sw.js')) {
-                        await registration.unregister();
-                        console.log('🧹 تم إلغاء Service Worker القديم');
+                for (const reg of registrations) {
+                    const url = reg.active?.scriptURL || '';
+                    if (url.includes('/sw.js') || url.includes('workbox')) {
+                        await reg.unregister();
+                        console.log('🧹 تم إلغاء SW قديم:', url);
                     }
                 }
 
-                // تسجيل Firebase Service Worker الجديد
+                // 2. تسجيل Service Worker الجديد
                 const registration = await navigator.serviceWorker.register(
                     '/firebase-messaging-sw.js',
-                    { scope: '/' }
+                    { 
+                        scope: '/',
+                        updateViaCache: 'none' 
+                    }
                 );
-                
+
+                console.log('✅ Firebase SW مسجل:', registration.scope);
+
+                // 3. انتظار التفعيل الكامل
                 await navigator.serviceWorker.ready;
-                console.log('✅ Firebase Service Worker مسجل بنجاح!');
+                console.log('✅ Service Worker جاهز للعمل!');
+                
+                setSwReady(true);
+
+                // 4. الاستماع للتحديثات
+                registration.addEventListener('updatefound', () => {
+                    const newWorker = registration.installing;
+                    newWorker?.addEventListener('statechange', () => {
+                        if (newWorker.state === 'activated') {
+                            console.log('🔄 تم تحديث Service Worker');
+                            window.location.reload();
+                        }
+                    });
+                });
 
             } catch (error) {
-                console.error('خطأ في تسجيل Firebase SW:', error);
+                console.error('❌ فشل تسجيل Service Worker:', error);
+                toast.error('خطأ في تفعيل نظام الإشعارات', {
+                    position: toast.POSITION.TOP_CENTER,
+                });
             }
         };
 
-        registerFirebaseSW();
+        // تسجيل عند تحميل الصفحة
+        if (document.readyState === 'complete') {
+            registerSW();
+        } else {
+            window.addEventListener('load', registerSW);
+            return () => window.removeEventListener('load', registerSW);
+        }
     }, []);
 
-    // الاستماع للرسائل في المقدمة
-    useEffect(() => {
-        if (notificationPermission) {
-            listenForMessages((payload) => {
-                console.log('📬 رسالة واردة:', payload);
-            });
-        }
-    }, [notificationPermission]);
-
+    // ============================================
     // إرسال أوقات الصلاة للـ Service Worker
-    useEffect(() => {
-        if (notificationPermission && timings.Fajr !== "00:00" && navigator.serviceWorker.controller) {
-            navigator.serviceWorker.controller.postMessage({
-                type: "SET_PRAYER_TIMINGS",
-                timings: timings,
-            });
-            console.log("✅ تم إرسال أوقات الصلاة:", timings);
-        }
-    }, [notificationPermission, timings]);
-
-    // زر تفعيل الإشعارات
-    const enableNotifications = async () => {
-        const token = await requestPermission();
-        if (token) {
-            console.log('✅ FCM Token:', token);
-            
-            // يمكنك حفظ Token في قاعدة البيانات هنا
-            // لإرسال إشعارات من السيرفر لاحقاً
-        }
-    };
-
-    // زر اختبار الإشعار (بعد دقيقة واحدة)
-    const scheduleTestNotification = async () => {
-        if (!notificationPermission) {
-            await enableNotifications();
-            return;
+    // ============================================
+    
+    const sendTimingsToSW = async (timingsToSend) => {
+        if (!swReady) {
+            console.log('⚠️ Service Worker ليس جاهزاً بعد');
+            return false;
         }
 
         try {
             const registration = await navigator.serviceWorker.ready;
             
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            
-            if (!navigator.serviceWorker.controller) {
-                toast.info("🔄 جاري تحميل Service Worker... انتظر قليلاً", {
+            if (!registration.active) {
+                console.log('⚠️ لا يوجد Service Worker نشط');
+                return false;
+            }
+
+            // إنشاء قناة اتصال
+            const messageChannel = new MessageChannel();
+
+            // إرسال الرسالة
+            registration.active.postMessage(
+                {
+                    type: 'SET_PRAYER_TIMINGS',
+                    timings: timingsToSend
+                },
+                [messageChannel.port2]
+            );
+
+            console.log('📤 تم إرسال الأوقات:', timingsToSend);
+
+            // انتظار التأكيد
+            return new Promise((resolve) => {
+                messageChannel.port1.onmessage = (event) => {
+                    console.log('📨 رد من Service Worker:', event.data);
+                    if (event.data.success) {
+                        toast.success('✅ تم تفعيل نظام الإشعارات!', {
+                            position: toast.POSITION.TOP_CENTER,
+                            autoClose: 2000,
+                        });
+                    }
+                    resolve(event.data.success);
+                };
+
+                // timeout بعد 5 ثواني
+                setTimeout(() => {
+                    console.log('⏱️ انتهت مهلة الانتظار');
+                    resolve(false);
+                }, 5000);
+            });
+
+        } catch (error) {
+            console.error('❌ فشل إرسال الأوقات:', error);
+            return false;
+        }
+    };
+
+    // ============================================
+    // إرسال الأوقات عند التحديث
+    // ============================================
+    
+    useEffect(() => {
+        if (
+            swReady && 
+            notificationPermission && 
+            timings.Fajr !== "00:00"
+        ) {
+            // تأخير بسيط للتأكد من جاهزية كل شيء
+            const timer = setTimeout(() => {
+                sendTimingsToSW(timings);
+            }, 1000);
+
+            return () => clearTimeout(timer);
+        }
+    }, [swReady, notificationPermission, timings]);
+
+    // ============================================
+    // الاستماع للرسائل في المقدمة
+    // ============================================
+    
+    useEffect(() => {
+        if (notificationPermission) {
+            listenForMessages((payload) => {
+                console.log('📬 رسالة واردة في المقدمة:', payload);
+                toast.info(payload.notification?.title || 'رسالة جديدة', {
                     position: toast.POSITION.TOP_CENTER,
                 });
-                window.location.reload();
+            });
+        }
+    }, [notificationPermission, listenForMessages]);
+
+    // ============================================
+    // زر تفعيل الإشعارات
+    // ============================================
+    
+    const enableNotifications = async () => {
+        if (!swReady) {
+            toast.warn('⚠️ Service Worker لم يتم تحميله بعد...', {
+                position: toast.POSITION.TOP_CENTER,
+            });
+            return;
+        }
+
+        const token = await requestPermission();
+        if (token) {
+            console.log('✅ FCM Token:', token);
+            toast.success('🔥 تم تفعيل Firebase بنجاح!', {
+                position: toast.POSITION.TOP_CENTER,
+            });
+            
+            // إرسال الأوقات فوراً
+            if (timings.Fajr !== "00:00") {
+                await sendTimingsToSW(timings);
+            }
+        } else {
+            toast.error('❌ فشل الحصول على الأذونات', {
+                position: toast.POSITION.TOP_CENTER,
+            });
+        }
+    };
+
+    // ============================================
+    // زر الاختبار الفوري
+    // ============================================
+    
+    const scheduleTestNotification = async () => {
+        if (!notificationPermission) {
+            toast.warn('⚠️ قم بتفعيل الإشعارات أولاً!', {
+                position: toast.POSITION.TOP_CENTER,
+            });
+            return;
+        }
+
+        if (!swReady) {
+            toast.warn('⚠️ Service Worker ليس جاهزاً...', {
+                position: toast.POSITION.TOP_CENTER,
+            });
+            return;
+        }
+
+        try {
+            const registration = await navigator.serviceWorker.ready;
+
+            if (!registration.active) {
+                toast.error('❌ Service Worker غير نشط!', {
+                    position: toast.POSITION.TOP_CENTER,
+                });
                 return;
             }
 
+            // حساب الوقت بعد دقيقة واحدة
             const now = new Date();
             now.setMinutes(now.getMinutes() + 1);
             const testTimeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
 
-            navigator.serviceWorker.controller.postMessage({
-                type: "SET_PRAYER_TIMINGS",
-                timings: {
-                    Fajr: testTimeStr,
-                    Dhuhr: "12:00",
-                    Asr: "15:00",
-                    Sunset: "18:00",
-                    Isha: "19:30"
+            // إرسال أوقات اختبار
+            const messageChannel = new MessageChannel();
+
+            registration.active.postMessage(
+                {
+                    type: 'SET_PRAYER_TIMINGS',
+                    timings: {
+                        Fajr: testTimeStr,
+                        Dhuhr: "12:00",
+                        Asr: "15:00",
+                        Sunset: "18:00",
+                        Isha: "19:30"
+                    }
+                },
+                [messageChannel.port2]
+            );
+
+            messageChannel.port1.onmessage = (event) => {
+                if (event.data.success) {
+                    setTestScheduled(true);
+                    setTestTime(testTimeStr);
+
+                    toast.success(
+                        `⏰ تم جدولة إشعار اختبار!\n\nسيظهر إشعار "الفجر" على: ${testTimeStr}\n\n✅ انتظر دقيقة واحدة...`,
+                        {
+                            position: toast.POSITION.TOP_CENTER,
+                            autoClose: 8000,
+                        }
+                    );
+
+                    console.log(`🧪 اختبار مجدول على: ${testTimeStr}`);
                 }
-            });
+            };
 
-            setTestScheduled(true);
-            setTestTime(testTimeStr);
-
-            toast.success(`⏰ تم جدولة إشعار اختبار!\n\nسيظهر إشعار "صلاة الفجر" على الساعة: ${testTimeStr}\n\nانتظر دقيقة واحدة... 🕐`, {
-                position: toast.POSITION.TOP_CENTER,
-                autoClose: 8000,
-            });
-
-            console.log(`⏰ إشعار اختبار مجدول على: ${testTimeStr}`);
         } catch (error) {
-            console.error("خطأ:", error);
-            toast.error("❌ خطأ! جرب إعادة تحميل الصفحة", {
+            console.error("❌ خطأ في الاختبار:", error);
+            toast.error("❌ حدث خطأ! جرب إعادة تحميل الصفحة", {
                 position: toast.POSITION.TOP_CENTER,
             });
         }
     };
 
+    // ============================================
     // إلغاء الاختبار
-    const cancelTest = () => {
-        if (navigator.serviceWorker.controller) {
-            navigator.serviceWorker.controller.postMessage({
-                type: "SET_PRAYER_TIMINGS",
-                timings: timings,
-            });
+    // ============================================
+    
+    const cancelTest = async () => {
+        setTestScheduled(false);
+        setTestTime("");
+        
+        await sendTimingsToSW(timings);
 
-            setTestScheduled(false);
-            setTestTime("");
-
-            toast.info("✅ تم إلغاء الاختبار وإعادة الأوقات الحقيقية", {
-                position: toast.POSITION.TOP_CENTER,
-            });
-        }
+        toast.info("✅ تم إلغاء الاختبار وإعادة الأوقات الحقيقية", {
+            position: toast.POSITION.TOP_CENTER,
+        });
     };
+
+    // ============================================
+    // باقي الكود (عداد الوقت، جلب الأوقات، إلخ)
+    // ============================================
 
     const setupPrayerCountdownTimer = () => {
         const momentNow = moment();
@@ -347,7 +504,7 @@ export default function Salah() {
                     <div className="container px-5 m-auto text-center">
                         <button
                             onClick={() => setRefreshGps(!refreshGps)}
-                            className="bg-lime-500 hover:bg-lime-600 text-white py-2 px-6 rounded-lg mt-4 transition-colors"
+                            className="bg-orange-500 hover:bg-orange-600 text-white py-2 px-6 rounded-lg mt-4 transition-colors"
                         >
                             🔄 تحديث الموقع
                         </button>
@@ -387,22 +544,7 @@ export default function Salah() {
                     className="absolute w-32 top-16 left-0 -z-40"
                     alt="img"
                 />
-                {loadingScreen ||
-                (timings.Fajr === "00:00" &&
-                    timings.Asr === "00:00" &&
-
-
-
-
-
-
-
-
-
-
-
-                    
-                    timings.Isha === "00:00") ? (
+                {loadingScreen || timings.Fajr === "00:00" ? (
                     <Loader />
                 ) : (
                     <>
@@ -411,8 +553,8 @@ export default function Salah() {
                             <div className={`p-4 rounded-xl shadow-lg transition-all ${
                                 testScheduled 
                                     ? "bg-gradient-to-r from-orange-500 to-red-500 text-white animate-pulse" 
-                                    : notificationPermission
-                                    ? "bg-gradient-to-r from-green-500 to-lime-500 text-white"
+                                    : notificationPermission && swReady
+                                    ? "bg-gradient-to-r from-green-500 to-orange-500 text-white"
                                     : "bg-gradient-to-r from-blue-500 to-purple-500 text-white"
                             }`}>
                                 {testScheduled ? (
@@ -424,7 +566,7 @@ export default function Salah() {
                                             سيظهر إشعار "صلاة الفجر" على الساعة: <span className="font-mono font-bold">{testTime}</span>
                                         </div>
                                         <div className="text-sm opacity-90 mb-3">
-                                            ⏳ انتظر دقيقة واحدة... (حتى لو أغلقت التطبيق!)
+                                            ⏳ انتظر دقيقة واحدة... (حتى لو أغلقت المتصفح!)
                                         </div>
                                         <button
                                             onClick={cancelTest}
@@ -435,15 +577,23 @@ export default function Salah() {
                                     </div>
                                 ) : (
                                     <div className="flex items-center justify-center gap-3 flex-wrap">
-                                        <span className="text-2xl">🔥</span>
+                                        <span className="text-2xl">
+                                            {swReady ? "✅" : "⏳"}
+                                        </span>
                                         <div className="flex-1 min-w-[200px] text-center">
                                             <div className="font-bold text-lg">
-                                                {notificationPermission ? "Firebase مفعل ✅" : "قم بتفعيل الإشعارات"}
+                                                {!swReady 
+                                                    ? "⏳ جاري تحميل النظام..."
+                                                    : notificationPermission 
+                                                    ? "🔥 Firebase مفعل ونشط" 
+                                                    : "قم بتفعيل الإشعارات"}
                                             </div>
                                             <div className="text-sm opacity-90">
-                                                {notificationPermission 
-                                                    ? "ستتلقى إشعاراً عند كل صلاة - مدعوم بـ Firebase"
-                                                    : "إشعارات قوية وموثوقة من Firebase Cloud Messaging"}
+                                                {!swReady
+                                                    ? "انتظر قليلاً..."
+                                                    : notificationPermission 
+                                                    ? "ستتلقى إشعاراً عند كل صلاة - نظام قوي وموثوق"
+                                                    : "إشعارات قوية من Firebase Cloud Messaging"}
                                             </div>
                                             {fcmToken && (
                                                 <div className="text-xs opacity-75 mt-1 font-mono truncate">
@@ -452,7 +602,7 @@ export default function Salah() {
                                             )}
                                         </div>
                                         <div className="flex gap-2">
-                                            {!notificationPermission && (
+                                            {swReady && !notificationPermission && (
                                                 <button
                                                     onClick={enableNotifications}
                                                     className="bg-white/30 hover:bg-white/50 px-6 py-3 rounded-lg font-bold text-lg transition-all hover:scale-105 shadow-lg"
@@ -460,7 +610,7 @@ export default function Salah() {
                                                     🔔 تفعيل الإشعارات
                                                 </button>
                                             )}
-                                            {notificationPermission && (
+                                            {swReady && notificationPermission && (
                                                 <button
                                                     onClick={scheduleTestNotification}
                                                     className="bg-white/30 hover:bg-white/50 px-6 py-3 rounded-lg font-bold text-lg transition-all hover:scale-105 shadow-lg"
@@ -480,7 +630,7 @@ export default function Salah() {
                                 {prayersArray.map((prayer, index) => (
                                     <div
                                         key={prayer.key}
-                                        className={`p-5 w-full ${prayer.css} time rounded-md mb-5 md:mb-0 bg-gradient-to-r from-orange-600 to-lime-500 flex flex-col justify-center text-xl transition-all duration-300 ${
+                                        className={`p-5 w-full ${prayer.css} time rounded-md mb-5 md:mb-0 bg-gradient-to-r from-orange-600 to-orange-500 flex flex-col justify-center text-xl transition-all duration-300 ${
                                             nextPrayerIndex === index
                                                 ? "md:scale-110 sm:scale-105 shadow-2xl ring-4 ring-white/50"
                                                 : "text-gray-300 py-8 opacity-80"

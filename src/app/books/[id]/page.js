@@ -75,7 +75,7 @@ export default async function Page({ params }) {
                             className="flex flex-col h-full bg-white rounded-2xl shadow-lg overflow-hidden dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1"
                         >
                             {/* صورة الكتاب */}
-                            <div className="relative h-48 bg-gradient-to-br from-orange-50 to-lime-50 dark:from-gray-700 dark:to-gray-800 flex items-center justify-center">
+                            <div className="relative h-48 bg-gradient-to-br from-orange-50 to-orange-50 dark:from-gray-700 dark:to-gray-800 flex items-center justify-center">
                                 {item.image ? (
                                     <Image
                                         src={item.image}
@@ -136,7 +136,7 @@ export default async function Page({ params }) {
                                     <a
                                         href={item.attachments[0]?.url || '#'}
                                         download
-                                        className="flex justify-center items-center w-full py-3 text-sm font-bold text-center text-white bg-gradient-to-r from-orange-600 to-lime-500 rounded-lg hover:from-orange-700 hover:to-lime-600 transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98]"
+                                        className="flex justify-center items-center w-full py-3 text-sm font-bold text-center text-white bg-gradient-to-r from-orange-600 to-orange-500 rounded-lg hover:from-orange-700 hover:to-orange-600 transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98]"
                                     >
                                         <FontAwesomeIcon icon={faDownload} className="ml-2" />
                                         تحميل الكتاب
@@ -160,7 +160,7 @@ export default async function Page({ params }) {
                         </Link>
                     )}
 
-                    <div className="flex items-center px-6 py-3 bg-gradient-to-r from-orange-50 to-lime-50 dark:from-gray-800 dark:to-gray-700 rounded-xl border border-orange-100 dark:border-gray-600">
+                    <div className="flex items-center px-6 py-3 bg-gradient-to-r from-orange-50 to-orange-50 dark:from-gray-800 dark:to-gray-700 rounded-xl border border-orange-100 dark:border-gray-600">
                         <span className="text-gray-700 dark:text-gray-300 font-bold">
                             الصفحة {links.current_page} من {links.pages_number}
                         </span>

@@ -153,6 +153,8 @@ export default function Reciters(props) {
                                             </span>
                                         </div>
                                     </div>
+                                     <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-orange-500 to-orange-400 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-500"></div>
+
                                 </Link>
                             ))}
                         </div>

@@ -42,7 +42,7 @@ export default function TafsirAyahs({ id }) {
         return (
             <div className="text-center pt-40 pb-40 py-16 bg-gradient-to-br from-white to-orange-50 dark:from-gray-900 dark:to-gray-800">
                 <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-600 mx-auto"></div>
-                <p className="mt-4 text-gray-600 dark:text-gray-300">جارٍ تحميل بيانات التفسير...</p>
+                <p className="mt-4 text-gray-600 dark:text-gray-300">جارٍ تحميل بيانات السورة...</p>
             </div>
         );
 

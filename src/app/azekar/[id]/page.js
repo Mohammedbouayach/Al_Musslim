@@ -42,7 +42,7 @@ export default function AzkarPage({ params }) {
                                         </div>
                                         <FontAwesomeIcon
                                             icon={faLeaf}
-                                            className="text-lime-500 dark:text-lime-400"
+                                            className="text-orange-500 dark:text-orange-400"
                                         />
                                     </div>
 
@@ -51,7 +51,7 @@ export default function AzkarPage({ params }) {
                                     </p>
 
                                     {/* خط زخرفي سفلي */}
-                                    <div className="mt-4 h-1 w-1/3 bg-gradient-to-r from-orange-500 to-lime-400 rounded-full"></div>
+                                    <div className="mt-4 h-1 w-1/3 bg-gradient-to-r from-orange-500 to-orange-400 rounded-full"></div>
                                 </div>
                             </motion.div>
                         ))}

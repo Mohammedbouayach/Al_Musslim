@@ -300,7 +300,7 @@ useEffect(() => {
                                 whileTap={{ scale: 0.95 }}
                                 className={`flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-medium shadow-lg transition-all ${isInstalled
                                     ? "bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed"
-                                    : "bg-gradient-to-r from-emerald-500 to-teal-600 text-white hover:shadow-xl"
+                                    : "bg-gradient-to-r from-orange-500 to-teal-600 text-white hover:shadow-xl"
                                     }`}
                                 onClick={installPWA}
                                 disabled={isInstalled}
@@ -312,7 +312,7 @@ useEffect(() => {
                             <motion.a
                                 href="#categories"
                                 whileHover={{ y: -3 }}
-                                className="flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-medium border border-emerald-300 dark:border-emerald-800 text-emerald-600 dark:text-emerald-400 bg-white dark:bg-gray-900 hover:bg-emerald-50 dark:hover:bg-emerald-900/40 shadow-sm"
+                                className="flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-medium border border-orange-300 dark:border-orange-800 text-orange-600 dark:text-orange-400 bg-white dark:bg-gray-900 hover:bg-orange-50 dark:hover:bg-orange-900/40 shadow-sm"
                             >
                                 استكشف المحتوى
                                 <FontAwesomeIcon icon={faAngleDoubleDown} />

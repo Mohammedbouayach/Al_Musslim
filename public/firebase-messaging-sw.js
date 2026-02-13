@@ -1,186 +1,172 @@
 // public/firebase-messaging-sw.js
-// Service Worker خاص بـ Firebase Cloud Messaging
+// Service Worker مع Periodic Background Sync
 
-// استيراد Firebase scripts
-importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js');
-
-// ============================================
-// ⚠️ هـــام جداً: استبدل القيم التالية
-// ============================================
-// 
-// احصل على القيم من:
-// Firebase Console → Project Settings → General → Your apps → Web app
-// 
-// انسخ نفس القيم الموجودة في ملف .env.local
-// (لكن بدون NEXT_PUBLIC_)
-//
-// ============================================
+importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-messaging-compat.js');
 
 const firebaseConfig = {
- apiKey: "AIzaSyC8IapFk7JPPcrAQ78xaOPVbz9RlUwR_ag",
+  apiKey: "AIzaSyC8IapFk7JPPcrAQ78xaOPVbz9RlUwR_ag",
   authDomain: "almuslim-b308c.firebaseapp.com",
   projectId: "almuslim-b308c",
   storageBucket: "almuslim-b308c.firebasestorage.app",
   messagingSenderId: "874573656499",
-  appId: "1:874573656499:web:a22b11c52d4444abbe9bc6",
-  measurementId: "G-LBV30LPJDE"
+  appId: "1:874573656499:web:a22b11c52d4444abbe9bc6"
 };
 
-// ⚠️ بعد التحديث، احفظ الملف وأعد تحميل التطبيق بـ Ctrl+Shift+R
-
-// تهيئة Firebase
 firebase.initializeApp(firebaseConfig);
-
-// الحصول على messaging instance
 const messaging = firebase.messaging();
 
-// ============================================
-// نظام إشعارات الصلاة
-// ============================================
-
 let prayerTimings = {};
-let checkInterval = null;
 
-console.log('✅ Firebase Service Worker محمّل!');
+console.log('🕌 Prayer SW loaded');
 
-// استقبال أوقات الصلاة من التطبيق
+// Install & Activate
+self.addEventListener('install', (event) => {
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(self.clients.claim());
+});
+
+// استقبال أوقات الصلاة
 self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'SET_PRAYER_TIMINGS') {
-    console.log('📅 تم استلام أوقات الصلاة:', event.data.timings);
+  if (event.data?.type === 'SET_PRAYER_TIMINGS') {
     prayerTimings = event.data.timings;
+    console.log('📅 Prayer times:', prayerTimings);
     
-    // إيقاف الفحص القديم
-    if (checkInterval) {
-      clearInterval(checkInterval);
-    }
-    
-    // بدء فحص دوري كل دقيقة
-    checkInterval = setInterval(() => {
-      checkPrayerTime();
-    }, 60000);
-    
-    // فحص فوري
-    checkPrayerTime();
+    // حفظ في IndexedDB للاستمرارية
+    saveToIndexedDB('prayerTimings', prayerTimings);
   }
 });
 
-// التحقق من وقت الصلاة
-function checkPrayerTime() {
-  const now = new Date();
-  const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-  
-  console.log(`🕐 الوقت الحالي: ${currentTime}`);
-  
-  // الصلوات الخمس
-  if (prayerTimings.Fajr === currentTime) {
-    showNotification('الفجر', currentTime);
-  } else if (prayerTimings.Dhuhr === currentTime) {
-    showNotification('الظهر', currentTime);
-  } else if (prayerTimings.Asr === currentTime) {
-    showNotification('العصر', currentTime);
-  } else if (prayerTimings.Sunset === currentTime) {
-    showNotification('المغرب', currentTime);
-  } else if (prayerTimings.Isha === currentTime) {
-    showNotification('العشاء', currentTime);
+// ⚠️ Periodic Background Sync - يعمل حتى بعد إغلاق التطبيق
+self.addEventListener('periodicsync', (event) => {
+  if (event.tag === 'check-prayer-time') {
+    event.waitUntil(checkPrayerTime());
+  }
+});
+
+// ⚠️ استيقاظ عند Push من Firebase
+self.addEventListener('push', (event) => {
+  console.log('🔔 Push received');
+  event.waitUntil(checkPrayerTime());
+});
+
+// فحص وقت الصلاة
+async function checkPrayerTime() {
+  // استرجاع الأوقات من IndexedDB
+  if (Object.keys(prayerTimings).length === 0) {
+    prayerTimings = await getFromIndexedDB('prayerTimings') || {};
   }
   
-  // أوقات رمضان (اختياري)
-  if (prayerTimings.Lastthird === currentTime) {
-    showNotification('السحور', currentTime);
-  } else if (prayerTimings.Imsak === currentTime) {
-    showNotification('الإمساك', currentTime);
+  const now = new Date();
+  const currentTime = now.getHours().toString().padStart(2,'0') + ':' + 
+                      now.getMinutes().toString().padStart(2,'0');
+  
+  console.log('🕐 Check:', currentTime);
+  
+  const prayers = {
+    Fajr: 'الفجر', Dhuhr: 'الظهر', Asr: 'العصر',
+    Sunset: 'المغرب', Isha: 'العشاء',
+    Lastthird: 'السحور', Imsak: 'الإمساك',
+  };
+
+  for (const [key, name] of Object.entries(prayers)) {
+    if (prayerTimings[key] === currentTime) {
+      await showPrayerNotification(name, currentTime);
+    }
   }
 }
 
 // إظهار الإشعار
-function showNotification(prayerName, time) {
-  console.log(`🕌 حان وقت صلاة ${prayerName}!`);
+async function showPrayerNotification(prayerName, time) {
+  console.log('🔔 Prayer time:', prayerName);
   
-  const notificationOptions = {
-    body: `الوقت: ${time}\n\nالصلاة خير من النوم 🤲`,
+  const options = {
+    body: 'الوقت: ' + time + '\nالصلاة خير من النوم 🤲',
     icon: '/icon-192x192.png',
     badge: '/icon-192x192.png',
-    tag: `prayer-${prayerName}`,
+    tag: 'prayer-' + prayerName + '-' + Date.now(),
     requireInteraction: true,
     vibrate: [300, 100, 300, 100, 300],
-    data: {
-      prayer: prayerName,
-      time: time,
-      url: '/salah'
-    },
-    actions: [
-      {
-        action: 'open',
-        title: '👁️ فتح التطبيق'
-      }
-    ]
+    data: { url: '/salah', time: time, prayer: prayerName },
+    silent: false,
   };
   
-  self.registration.showNotification(
-    `🕌 حان وقت صلاة ${prayerName}`,
-    notificationOptions
-  );
+  await self.registration.showNotification('🕌 حان وقت صلاة ' + prayerName, options);
 }
 
-// ============================================
-// معالجة الرسائل الواردة من Firebase (Background)
-// ============================================
-
-messaging.onBackgroundMessage((payload) => {
-  console.log('📬 رسالة Firebase في الخلفية:', payload);
-  
-  const notificationTitle = payload.notification?.title || 'إشعار جديد';
-  const notificationOptions = {
-    body: payload.notification?.body || '',
-    icon: payload.notification?.icon || '/icon-192x192.png',
-    badge: '/icon-192x192.png',
-    data: payload.data || {},
-    requireInteraction: true,
-    vibrate: [200, 100, 200]
-  };
-
-  self.registration.showNotification(notificationTitle, notificationOptions);
-});
-
-// ============================================
-// معالجة النقر على الإشعار
-// ============================================
-
+// النقر على الإشعار
 self.addEventListener('notificationclick', (event) => {
-  console.log('🔔 تم النقر على الإشعار');
   event.notification.close();
-  
-  const urlToOpen = event.notification.data?.url || '/salah';
-  
+  const url = event.notification.data?.url || '/salah';
   event.waitUntil(
-    clients.matchAll({ 
-      type: 'window', 
-      includeUncontrolled: true 
-    }).then((clientList) => {
-      // البحث عن نافذة مفتوحة
-      for (let client of clientList) {
-        if (client.url.includes(urlToOpen) && 'focus' in client) {
-          return client.focus();
+    clients.matchAll({ type: 'window', includeUncontrolled: true })
+      .then((list) => {
+        for (const client of list) {
+          if (client.url.includes(url) && 'focus' in client) {
+            return client.focus();
+          }
         }
-      }
-      // فتح نافذة جديدة
-      if (clients.openWindow) {
-        return clients.openWindow(urlToOpen);
-      }
-    })
+        if (clients.openWindow) return clients.openWindow(url);
+      })
   );
 });
 
-// عند إغلاق الإشعار
-self.addEventListener('notificationclose', (event) => {
-  console.log('❌ تم إغلاق الإشعار:', event.notification.tag);
+// رسائل Firebase
+messaging.onBackgroundMessage((payload) => {
+  console.log('📬 Firebase:', payload);
+  const title = payload.notification?.title || 'إشعار';
+  const options = {
+    body: payload.notification?.body || '',
+    icon: '/icon-192x192.png',
+    data: payload.data || {},
+  };
+  self.registration.showNotification(title, options);
 });
 
-// تفعيل Service Worker فوراً
-self.addEventListener('activate', (event) => {
-  console.log('✅ Firebase Service Worker مفعّل!');
-  event.waitUntil(self.clients.claim());
-});
+// ============================================
+// IndexedDB للحفظ الدائم
+// ============================================
+function saveToIndexedDB(key, value) {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open('PrayerDB', 1);
+    request.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains('data')) {
+        db.createObjectStore('data');
+      }
+    };
+    request.onsuccess = (e) => {
+      const db = e.target.result;
+      const tx = db.transaction('data', 'readwrite');
+      const store = tx.objectStore('data');
+      store.put(value, key);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    };
+    request.onerror = () => reject(request.error);
+  });
+}
 
-console.log('✅ نظام إشعارات Firebase جاهز! 🕌');
+function getFromIndexedDB(key) {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open('PrayerDB', 1);
+    request.onsuccess = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains('data')) {
+        resolve(null);
+        return;
+      }
+      const tx = db.transaction('data', 'readonly');
+      const store = tx.objectStore('data');
+      const req = store.get(key);
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    };
+    request.onerror = () => reject(request.error);
+  });
+}
+
+console.log('✅ Prayer SW ready! 🕌');

@@ -64,7 +64,7 @@ export default function Navbar() {
                                     </div>
                                     {/* <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white dark:border-gray-900"></div> */}
                                 </div>
-                                {/* <span className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-lime-600 to-orange-700 dark:from-lime-400 dark:to-orange-500 hidden sm:block">موقعك</span> */}
+                                {/* <span className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-orange-600 to-orange-700 dark:from-orange-400 dark:to-orange-500 hidden sm:block">موقعك</span> */}
                             </Link>
 
                             {/* قائمة سطح المكتب */}
@@ -100,9 +100,9 @@ export default function Navbar() {
                                 {/* <div className="flex items-center space-x-3 mr-2">
                                     <button className="relative px-5 py-2.5 text-sm font-medium rounded-lg text-white overflow-hidden group">
                                         <span className="relative z-10">تسجيل الدخول</span>
-                                        <div className="absolute inset-0 bg-gradient-to-r from-lime-500 to-orange-600 transition-transform duration-300 group-hover:scale-105"></div>
+                                        <div className="absolute inset-0 bg-gradient-to-r from-orange-500 to-orange-600 transition-transform duration-300 group-hover:scale-105"></div>
                                     </button>
-                                    <button className="px-4 py-2.5 text-sm font-medium rounded-lg border border-lime-500 text-lime-600 dark:text-lime-400 hover:bg-lime-50 dark:hover:bg-gray-800 transition-all duration-300">
+                                    <button className="px-4 py-2.5 text-sm font-medium rounded-lg border border-orange-500 text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-gray-800 transition-all duration-300">
                                         إنشاء حساب
                                     </button>
                                 </div> */}
@@ -139,7 +139,7 @@ export default function Navbar() {
                         {/* رأس القائمة الجانبية */}
                         <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-800">
                             <div className="flex items-center space-x-3">
-                                <div className="relative w-10 h-10 overflow-hidden rounded-xl bg-gradient-to-br from-lime-400 to-orange-600 p-0.5">
+                                <div className="relative w-10 h-10 overflow-hidden rounded-xl bg-gradient-to-br from-orange-400 to-orange-600 p-0.5">
                                     <div className="w-full h-full bg-white dark:bg-gray-900 rounded-lg flex items-center justify-center">
                                         <Image
                                             loading="lazy"
@@ -167,13 +167,13 @@ export default function Navbar() {
                                                 ${
                                                     pathname === item.path
                                                         ? "bg-orange-50 text-orange-600 dark:bg-gray-800 dark:text-orange-400"
-                                                        : "text-gray-700 dark:text-gray-200 hover:bg-lime-50 dark:hover:bg-gray-800 hover:text-lime-600 dark:hover:text-lime-400"
+                                                        : "text-gray-700 dark:text-gray-200 hover:bg-orange-50 dark:hover:bg-gray-800 hover:text-orange-600 dark:hover:text-orange-400"
                                                 }
                                             `}
                                         >
 
                                             <span className="relative z-10">{item.name}</span>
-                                            <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-lime-500 to-orange-600 opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
+                                            <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-orange-500 to-orange-600 opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
                                         </Link>
                                     </li>
                                 ))}

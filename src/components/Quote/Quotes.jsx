@@ -93,7 +93,7 @@ export default function Quotes() {
             <div className={`absolute bottom-0 left-0 w-full h-1 transform -translate-x-full group-hover:translate-x-0 transition-transform duration-500 ${
                 isFamous
                     ? 'bg-gradient-to-r from-amber-500 to-amber-400'
-                    : 'bg-gradient-to-r from-orange-500 to-lime-400'
+                    : 'bg-gradient-to-r from-orange-500 to-orange-400'
             }`}></div>
         </Link>
     );

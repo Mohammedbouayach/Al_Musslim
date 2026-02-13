@@ -88,9 +88,9 @@ export default function Page() {
                 console.error("Failed to fetch Ramadan dates:", error);
                 // Set default dates for 2025
                 setRamadanInfo({
-                    start: new Date(2025, 1, 16), // February 1, 2025
-                    end: new Date(2025, 1, 28),  // February 28, 2025
-                    totalDays: 28,
+                    start: new Date(2026, 1, 18), // February 1, 2025
+                    end: new Date(2026, 3, 19),  // February 28, 2025
+                    totalDays: 29,
                 });
             } finally {
                 setIsLoading(false);

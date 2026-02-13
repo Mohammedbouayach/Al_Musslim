@@ -9,43 +9,44 @@ export default function ServiceWorkerRegistration() {
 
         const registerSW = async () => {
             try {
-                // ✅ الخطوة 1: إلغاء sw.js القديم (Workbox) الذي يسبب خطأ 404
                 const registrations = await navigator.serviceWorker.getRegistrations();
                 for (const reg of registrations) {
-                    const url = reg.active?.scriptURL
-                             || reg.installing?.scriptURL
-                             || reg.waiting?.scriptURL
-                             || '';
+                    const url = reg.active?.scriptURL || '';
                     if (url.includes('/sw.js') && !url.includes('firebase-messaging-sw')) {
                         await reg.unregister();
-                        console.log('🧹 تم إلغاء sw.js القديم');
                     }
                 }
 
-                // ✅ الخطوة 2: تسجيل firebase-messaging-sw.js الجديد
                 const registration = await navigator.serviceWorker.register(
                     '/firebase-messaging-sw.js',
                     { scope: '/', updateViaCache: 'none' }
                 );
 
-                console.log('✅ Firebase SW مسجل بنجاح:', registration.scope);
+                console.log('✅ SW registered');
 
-                // الاستماع للتحديثات
-                registration.addEventListener('updatefound', () => {
-                    console.log('🔄 يوجد تحديث للـ Service Worker');
-                });
+                if ('periodicSync' in registration) {
+                    try {
+                        await registration.periodicSync.register('check-prayer-time', {
+                            minInterval: 60 * 1000
+                        });
+                        console.log('✅ Periodic sync OK');
+                    } catch (e) {
+                        console.log('⚠️ Periodic sync not supported');
+                    }
+                }
 
-                // الاستماع لتغييرات الحالة
-                navigator.serviceWorker.addEventListener('controllerchange', () => {
-                    console.log('🔄 تم تحديث Service Worker');
-                });
+                setInterval(() => {
+                    registration.update();
+                    if (navigator.serviceWorker.controller) {
+                        navigator.serviceWorker.controller.postMessage({ type: 'KEEP_ALIVE' });
+                    }
+                }, 30000);
 
             } catch (error) {
-                console.error('❌ فشل تسجيل Service Worker:', error);
+                console.error('❌ SW error:', error);
             }
         };
 
-        // انتظر تحميل الصفحة كاملاً قبل التسجيل
         if (document.readyState === 'complete') {
             registerSW();
         } else {

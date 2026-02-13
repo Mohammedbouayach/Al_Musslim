@@ -15,11 +15,11 @@ export default function Search(props) {
                 <input
                     type="text"
                     onChange={props.handleChange}
-                    className="w-full pl-10 pr-4 py-3 text-lg rounded-2xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-lime-500 focus:border-transparent transition-all duration-300"
+                    className="w-full pl-10 pr-4 py-3 text-lg rounded-2xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-300"
                     placeholder="بحث..."
                 />
                 <button className="absolute inset-y-0 left-3     flex items-center pr-3">
-                    <div className="p-1.5 rounded-full bg-gradient-to-r from-lime-500 to-orange-500 text-white shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-300">
+                    <div className="p-1.5 rounded-full bg-gradient-to-r from-orange-500 to-orange-400 text-white shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-300">
                         <svg
                             className="h-5 w-5"
                             fill="currentColor"

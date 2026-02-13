@@ -36,7 +36,7 @@ const cairo = localFont({
 
 
 export const metadata = {
-    metadataBase: new URL("https://almuslim.com"),
+    metadataBase: new URL("https://al-musslim.vercel.app"),
 
     title: {
         default: "المسلم | موقع إسلامي شامل",
@@ -63,7 +63,7 @@ export const metadata = {
         "almuslim"
     ],
 
-    authors: [{ name: " محمد بوعيش", url: "https://almuslim.com" }],
+    authors: [{ name: " محمد بوعيش", url: "https://al-musslim.vercel.app" }],
 
     icons: {
         icon: "/logo.png",
@@ -74,14 +74,14 @@ export const metadata = {
     openGraph: {
         type: "website",
         locale: "ar_Mar",
-        url: "https://almuslim.com",
-        siteName: "المسلم | almuslim",
+        url: "https://al-musslim.vercel.app",
+        siteName: "المسلم | almusslim",
         title: "المسلم | موقع إسلامي شامل للقرآن والأحاديث والأدعية",
         description:
             "اكتشف كنوز العلم والإيمان في موقع المسلم — القرآن الكريم، التفسير، الأحاديث، الأدعية، الخطب، الكتب والمزيد.",
         images: [
             {
-                url: "/og-image.jpg",
+                url: "/logo.png",
                 width: 1200,
                 height: 630,
                 alt: "المسلم | موقع إسلامي شامل"
@@ -91,8 +91,8 @@ export const metadata = {
 
     twitter: {
         card: "summary_large_image",
-        site: "@almuslim",
-        creator: "@mostafaahmed",
+        site: "@almusslim",
+        creator: "@bouayach_mohammed",
         title: "المسلم | موقع إسلامي شامل",
         description:
             "منصة المسلم — مرجعك الكامل للقرآن الكريم، الأحاديث، الأدعية، الفتاوى، الكتب والمحاضرات الإسلامية.",
@@ -102,11 +102,11 @@ export const metadata = {
     verification: {
         google: "google-site-verification-code",
         yahoo: "yahoo-verification-code",
-        me: ["mailto:zn327855@gmail.com"]
+        me: ["mailto:jomalikocovali1@gmail.com"]
     },
 
     alternates: {
-        canonical: "https://almuslim.com"
+        canonical: "https://al-musslim.vercel.app"
     },
 
     category: "Islamic"
@@ -127,7 +127,7 @@ export default function RootLayout({ children }) {
             </head>
             <SWRProvider>
                 <RamadanProvider>
-                    <body cz-shortcut-listen="true" className="bg-[rgb(250,250,250)] text-sm header dark:bg-gray-950 dark:text-white transition-colors selection:bg-lime-600 selection:text-white">
+                    <body cz-shortcut-listen="true" className="bg-[rgb(250,250,250)] text-sm header dark:bg-gray-950 dark:text-white transition-colors selection:bg-orange-600 selection:text-white">
                          <ServiceWorkerRegistration /> 
                         <iframe
                             src="https://www.googletagmanager.com/ns.html?id=GTM-WBZJG335"

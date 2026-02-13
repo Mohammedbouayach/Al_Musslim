@@ -62,7 +62,7 @@ export const categoriesLinks = [
         path: "/salah",
         img: "/categories/Salah.png",
         description: "تعرف على مواقيت الصلاة والمناسبات الإسلامية المهمة.",
-        new: false,
+        new: true,
         ramadan: false,
     },
     {
@@ -86,7 +86,7 @@ export const categoriesLinks = [
         path: "/quotes",
         img: "/categories/quotes.png",
         description: "استمتع بأروع الاقتباسات الإسلامية والحكم النافعة.",
-        new: false,
+        new: true,
         ramadan: false,
     },
     {
@@ -102,7 +102,7 @@ export const categoriesLinks = [
         path: "/articles/1",
         img: "/categories/articles.png",
         description: "تصفح مقالات دينية وثقافية متنوعة ومفيدة.",
-        new: false,
+        new: true,
         ramadan: false,
     },
     {
@@ -110,7 +110,7 @@ export const categoriesLinks = [
         path: "/khotab/1",
         img: "/categories/khotab.png",
         description: "استمع إلى خطب إسلامية قيمة وموعظة حسنة.",
-        new: false,
+        new: true,
         ramadan: false,
     },
     {
@@ -118,7 +118,7 @@ export const categoriesLinks = [
         path: "/fatwa/1",
         img: "/categories/fatwa.png",
         description: "احصل على إجابات شرعية لأسئلتك الدينية والفقهية.",
-        new: false,
+        new: true,
         ramadan: false,
     },
     {
@@ -126,7 +126,7 @@ export const categoriesLinks = [
         path: "/audios/1",
         img: "/categories/audios.png",
         description: "استمع إلى محاضرات صوتية دينية من علماء موثوقين.",
-        new: false,
+        new: true,
         ramadan: false,
     },
     {
@@ -134,7 +134,7 @@ export const categoriesLinks = [
         path: "/videos/1",
         img: "/categories/videos.png",
         description: "شاهد محاضرات ودروس إسلامية بصيغة فيديو مفيدة.",
-        new: false,
+        new: true,
         ramadan: false,
     },
     // {

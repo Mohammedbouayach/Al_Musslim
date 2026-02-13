@@ -73,7 +73,7 @@ export default function CategoryAdith({ category }) {
                                 </div>
 
                                 {/* شريط تفاعلي في أسفل البطاقة */}
-                                <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-orange-500 to-lime-400 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-500"></div>
+                                <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-orange-500 to-orange-400 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-500"></div>
                             </Link>
                         </motion.div>
                     ))}

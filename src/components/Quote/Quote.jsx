@@ -49,14 +49,15 @@ export default function Quote() {
         <>
             <ToastContainer />
             <section className="py-10">
-                <h2 className="text-2xl mb-5 w-fit m-auto relative before:w-10 before:bg-lime-600 before:h-1 before:absolute before:top-1/2 before:right-full before:-translate-x-5 after:w-10 after:bg-lime-600 after:h-1 after:absolute after:top-1/2 after:left-full after:translate-x-5">
+                
+                <h2 className="text-2xl mb-5 w-fit m-auto relative before:w-10 before:bg-orange-600 before:h-1 before:absolute before:top-1/2 before:right-full before:-translate-x-5 after:w-10 after:bg-orange-600 after:h-1 after:absolute after:top-1/2 after:left-full after:translate-x-5">
                     اقتباس عشوائي
                 </h2>
                 <div className="container m-auto px-3">
                     <div className="px-6 py-6">
                         <figure className="max-w-screen-md mx-auto text-center">
                             <svg
-                                className="w-10 h-10 mx-auto mb-3 text-lime-600"
+                                className="w-10 h-10 mx-auto mb-3 text-orange-600"
                                 aria-hidden="true"
                                 xmlns="http://www.w3.org/2000/svg"
                                 fill="currentColor"
@@ -80,13 +81,13 @@ export default function Quote() {
                                         `'${quoteData.text}' ${quoteData.author}`
                                     )
                                 }
-                                className="text-lime-600 border-2 border-lime-600 hover:bg-lime-600 hover:text-white focus:outline-none font-medium rounded-full text-sm p-2.5 text-center inline-flex items-center"
+                                className="text-orange-600 border-2 border-orange-600 hover:bg-orange-600 hover:text-white focus:outline-none font-medium rounded-full text-sm p-2.5 text-center inline-flex items-center"
                             >
                                 <FontAwesomeIcon icon={faCopy} />
                             </button>
                             <button
                                 onClick={refreshText}
-                                className="text-lime-600 border-2 border-lime-600 hover:bg-lime-600 hover:text-white focus:outline-none font-medium rounded-full text-sm p-2.5 text-center inline-flex items-center"
+                                className="text-orange-600 border-2 border-orange-600 hover:bg-orange-600 hover:text-white focus:outline-none font-medium rounded-full text-sm p-2.5 text-center inline-flex items-center"
                             >
                                 <FontAwesomeIcon icon={faRefresh} />
                             </button>
@@ -96,7 +97,7 @@ export default function Quote() {
                                         `'${quoteData.text}' ${quoteData.author}`
                                     )
                                 }
-                                className="text-lime-600 border-2 border-lime-600 hover:bg-lime-600 hover:text-white focus:outline-none font-medium rounded-full text-sm p-2.5 text-center inline-flex items-center"
+                                className="text-orange-600 border-2 border-orange-600 hover:bg-orange-600 hover:text-white focus:outline-none font-medium rounded-full text-sm p-2.5 text-center inline-flex items-center"
                             >
                                 <FontAwesomeIcon icon={faShare} />
                             </button>

@@ -56,7 +56,7 @@ export default async function ({ params }) {
                         <span className="font-quran text-xl md:text-2xl">
                             {aya.text.replace("بِسۡمِ ٱللَّهِ ٱلرَّحۡمَـٰنِ ٱلرَّحِیمِ", "")}
                         </span>
-                        <span className="font-quran text-lime-600 text-xl md:text-2xl">
+                        <span className="font-quran text-orange-600 text-xl md:text-2xl">
                             <span className="mr-2 font-quran"> ﴿ </span>
                             <span className="text-black dark:text-white">
                                 {aya.numberInSurah}

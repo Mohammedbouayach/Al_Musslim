@@ -25,7 +25,7 @@ function Tasbih() {
             <section className="py-10 relative">
                 <Image width={100} height={100} src="/img.png" className="absolute w-32 top-16 left-0 -z-40" alt="img" />
                 <div className="px-3">
-                    <div className="shape-electronic m-auto">
+                    <div className="shape-electronic m-auto bg-gradient-to-br from-orange-500 to-orange-500 dark:from-orange-500 dark:to-orange-500">
                         <div className="screen-digit">
                             <div className="layout-screen-digit" />
                             <div className="contain-screen-digit font-sans bg-white border-white text-black">
