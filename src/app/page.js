@@ -3,6 +3,7 @@
 import Categories from "@/components/Home/Categories";
 import SplashScreen from "@/components/Layout/SplashScreen";
 import { motion } from "framer-motion";
+import AutoPrayerNotification from "@/components/AutoPrayerNotification";
 import {
     faAngleDoubleDown,
     faDownload,
@@ -224,7 +225,7 @@ useEffect(() => {
 
     return (
         <>
-        
+                    <AutoPrayerNotification />
             <section className="relative overflow-hidden min-h-screen pt-20 flex items-center justify-center bg-gradient-to-br from-orange-50 via-teal-50 to-white dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
 
                 {/* خلفية زخرفية متحركة */}

@@ -140,7 +140,7 @@ function Footer() {
                                 <div className="relative w-28 h-28 mb-4">
                                     
                                     <Image
-                                        src="/images/mohammed.jpg" // غيّر المسار حسب مكان الصورة
+                                        src="/images/mohammed.png" // غيّر المسار حسب مكان الصورة
                                         alt="مطور الموقع"
                                         fill
                                         className="rounded-full object-cover border-4 border-orange-500 shadow-md"
