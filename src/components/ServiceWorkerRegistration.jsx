@@ -22,7 +22,6 @@ export default function ServiceWorkerRegistration() {
                     { scope: '/', updateViaCache: 'none' }
                 );
 
-                console.log('✅ SW registered');
 
                 if ('periodicSync' in registration) {
                     try {

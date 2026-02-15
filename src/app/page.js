@@ -213,14 +213,10 @@ useEffect(() => {
       body: `${randomQuote.text} — ${randomQuote.author}`,
       icon: "/img.png",
     });
-  }, 60000);
+  }, 1000 * 60 * 60); // كل ساعة
 
   return () => clearInterval(interval);
 }, []);
-
-
-
-
 
 
     return (

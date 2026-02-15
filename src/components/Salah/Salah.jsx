@@ -391,15 +391,15 @@ export default function Salah() {
                                             {!swReady 
                                                 ? "⏳ جاري تحميل النظام..."
                                                 : notificationPermission 
-                                                ? "🔥 Firebase مفعل ونشط" 
+                                                ? "✅ الإشعارات مفعلة" 
                                                 : "قم بتفعيل الإشعارات"}
                                         </div>
                                         <div className="text-sm opacity-90">
                                             {!swReady
                                                 ? "انتظر قليلاً..."
                                                 : notificationPermission 
-                                                ? "ستتلقى إشعاراً عند كل وقت صلاة"
-                                                : "إشعارات قوية من Firebase"}
+                                                ? "ستتلقى إشعارات الصلاة في الوقت المحدد!"
+                                                : "إشعارات قوية من Firebase عند كل صلاة!"}
                                         </div>
                                     </div>
                                     <div className="flex gap-2">

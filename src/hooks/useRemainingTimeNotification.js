@@ -17,10 +17,7 @@ export const useRemainingTimeNotification = (timings, enabled = true) => {
     const sessionKey = 'notificationShownThisSession';
     const alreadyShown = sessionStorage.getItem(sessionKey);
     
-    if (alreadyShown === 'true') {
-      console.log('⏭️ تم إرسال الإشعار مسبقاً في هذه الجلسة');
-      return;
-    }
+   
 
     const prayersArray = [
       { key: 'Fajr', displayName: 'الفجر' },
@@ -91,12 +88,10 @@ export const useRemainingTimeNotification = (timings, enabled = true) => {
           if (event.data.success) {
             // ⚠️ حفظ في sessionStorage (يُمسح عند إغلاق التطبيق)
             sessionStorage.setItem(sessionKey, 'true');
-            console.log('✅ تم إرسال إشعار الوقت المتبقي:', timeText);
           }
         };
 
         setTimeout(() => {
-          console.log('⏱️ انتهت مهلة الانتظار');
         }, 3000);
 
       } catch (error) {

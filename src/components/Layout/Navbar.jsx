@@ -8,14 +8,11 @@ import { links } from "../../data/links";
 import { useRamadan } from "@/context/ramadanContext";
 import { usePathname } from "next/navigation";
 
-
-
 export default function Navbar() {
     const { ramadan } = useRamadan();
     const [isOpen, setIsOpen] = useState(false);
     const [scrolled, setScrolled] = useState(false);
     const pathname = usePathname();
-
 
     // تأثير التمرير
     useEffect(() => {
@@ -39,10 +36,25 @@ export default function Navbar() {
 
     const toggleMenu = () => setIsOpen(!isOpen);
 
+    // ⚠️ دالة للتحقق من النشاط (تدعم المسارات الديناميكية)
+    const isActiveLink = (linkPath) => {
+        // إذا كان في الصفحة الرئيسية
+        if (linkPath === "/" && pathname === "/") {
+            return true;
+        }
+        
+        // إذا لم يكن الصفحة الرئيسية، استخدم startsWith
+        if (linkPath !== "/" && pathname.startsWith(linkPath)) {
+            return true;
+        }
+        
+        return false;
+    };
+
     return (
         <>
             {/* شريط التنقل الرئيسي */}
-            <Headroom className="fixed z-50 top-0 left-0 right-0 transition-all  duration-300">
+            <Headroom className="fixed z-50 top-0 left-0 right-0 transition-all duration-300">
                 <nav className={`relative backdrop-blur-xl mb-10 transition-all duration-300 ${scrolled ? 'bg-white/95 dark:bg-gray-900/95 shadow-xl py-3' : 'bg-transparent py-1'}`}>
                     <div className="container mx-auto px-4 md:px-6">
                         <div className="flex justify-between items-center">
@@ -62,50 +74,37 @@ export default function Navbar() {
                                             />
                                         </div>
                                     </div>
-                                    {/* <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white dark:border-gray-900"></div> */}
                                 </div>
-                                {/* <span className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-orange-600 to-orange-700 dark:from-orange-400 dark:to-orange-500 hidden sm:block">موقعك</span> */}
                             </Link>
 
                             {/* قائمة سطح المكتب */}
                             <div className="hidden lg:flex items-center space-x-4">
-                          <div className="flex items-center gap-2 md:gap-4 flex-wrap justify-center">
-                                {links.map((item, index) => {
-                                    const isActive = pathname === item.path;
+                                <div className="flex items-center gap-2 md:gap-4 flex-wrap justify-center">
+                                    {links.map((item, index) => {
+                                        // ⚠️ استخدام الدالة الجديدة بدلاً من المقارنة المباشرة
+                                        const isActive = isActiveLink(item.path);
 
-                                    return (
-                                        <Link
-                                            key={index}
-                                            href={item.path}
-                                            className={`relative px-4 py-2.5 text-sm font-semibold rounded-xl overflow-hidden transition-all duration-300
-                                                ${isActive ? "text-orange-600 dark:text-orange-400 shadow-sm" : "text-gray-700 dark:text-white hover:text-orange-600 dark:hover:text-orange-400"}
-                                                before:absolute before:inset-0 before:rounded-xl
- 0                                               before:bg-gradient-to-r before:from-orange-50/2 before:to-orange-50/2
-                                                before:transition-all before:duration-500
-                                                ${
-                                                    isActive
-                                                        ? "before:opacity-100 before:scale-x-100 before:origin-left"
-                                                        : "before:opacity-0 before:scale-x-0 before:origin-right hover:before:opacity-100 hover:before:scale-x-100"
-                                                }
-                                            `}
-                                        >
-                                            <span className="relative z-10">{item.name}</span>
-                                        </Link>
-                                    );
-                                                    })}
+                                        return (
+                                            <Link
+                                                key={index}
+                                                href={item.path}
+                                                className={`relative px-4 py-2.5 text-sm font-semibold rounded-xl overflow-hidden transition-all duration-300
+                                                    ${isActive ? "text-orange-600 dark:text-orange-400 shadow-sm" : "text-gray-700 dark:text-white hover:text-orange-600 dark:hover:text-orange-400"}
+                                                    before:absolute before:inset-0 before:rounded-xl
+                                                    before:bg-gradient-to-r before:from-orange-50/2 before:to-orange-50/2
+                                                    before:transition-all before:duration-500
+                                                    ${
+                                                        isActive
+                                                            ? "before:opacity-100 before:scale-x-100 before:origin-left"
+                                                            : "before:opacity-0 before:scale-x-0 before:origin-right hover:before:opacity-100 hover:before:scale-x-100"
+                                                    }
+                                                `}
+                                            >
+                                                <span className="relative z-10">{item.name}</span>
+                                            </Link>
+                                        );
+                                    })}
                                 </div>
-
-
-
-                                {/* <div className="flex items-center space-x-3 mr-2">
-                                    <button className="relative px-5 py-2.5 text-sm font-medium rounded-lg text-white overflow-hidden group">
-                                        <span className="relative z-10">تسجيل الدخول</span>
-                                        <div className="absolute inset-0 bg-gradient-to-r from-orange-500 to-orange-600 transition-transform duration-300 group-hover:scale-105"></div>
-                                    </button>
-                                    <button className="px-4 py-2.5 text-sm font-medium rounded-lg border border-orange-500 text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-gray-800 transition-all duration-300">
-                                        إنشاء حساب
-                                    </button>
-                                </div> */}
                             </div>
 
                             {/* زر القائمة للهاتف */}
@@ -152,36 +151,36 @@ export default function Navbar() {
                                     </div>
                                 </div>
                             </div>
-                         
                         </div>
 
                         {/* محتوى القائمة الجانبية */}
                         <div className="flex-1 overflow-y-auto p-6 mt-4">
                             <ul className="space-y-4">
-                                {links.map((item, index) => (
-                                    <li key={index}>
-                                        <Link
-                                            onClick={() => setIsOpen(false)}
-                                            href={item.path}
-                                            className={`flex items-center px-4 py-3 text-lg font-medium rounded-lg transition-all duration-300 group
-                                                ${
-                                                    pathname === item.path
-                                                        ? "bg-orange-50 text-orange-600 dark:bg-gray-800 dark:text-orange-400"
-                                                        : "text-gray-700 dark:text-gray-200 hover:bg-orange-50 dark:hover:bg-gray-800 hover:text-orange-600 dark:hover:text-orange-400"
-                                                }
-                                            `}
-                                        >
+                                {links.map((item, index) => {
+                                    // ⚠️ استخدام نفس الدالة في القائمة الجانبية
+                                    const isActive = isActiveLink(item.path);
 
-                                            <span className="relative z-10">{item.name}</span>
-                                            <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-orange-500 to-orange-600 opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
-                                        </Link>
-                                    </li>
-                                ))}
+                                    return (
+                                        <li key={index}>
+                                            <Link
+                                                onClick={() => setIsOpen(false)}
+                                                href={item.path}
+                                                className={`flex items-center px-4 py-3 text-lg font-medium rounded-lg transition-all duration-300 group
+                                                    ${
+                                                        isActive
+                                                            ? "bg-orange-50 text-orange-600 dark:bg-gray-800 dark:text-orange-400"
+                                                            : "text-gray-700 dark:text-gray-200 hover:bg-orange-50 dark:hover:bg-gray-800 hover:text-orange-600 dark:hover:text-orange-400"
+                                                    }
+                                                `}
+                                            >
+                                                <span className="relative z-10">{item.name}</span>
+                                                <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-orange-500 to-orange-600 opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
+                                            </Link>
+                                        </li>
+                                    );
+                                })}
                             </ul>
                         </div>
-
-                        {/* تذييل القائمة الجانبية */}
-                       
                     </div>
                 </div>
             </div>

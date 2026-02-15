@@ -18,18 +18,12 @@ function Footer() {
     // };
 
     const socialLinks = [
-        { icon: faFacebook, href: "", label: "فيسبوك" },
-        { icon: faGithub, href: "", label: "جيت هب" },
-        // { icon: faTwitter, href: "#", label: "تويتر" },
-        // { icon: faInstagram, href: "#", label: "انستغرام" },
-        { icon: faYoutube, href: "#", label: "يوتيوب" }
+        { icon: faFacebook, href: "https://web.facebook.com/don.med.731572", label: "فيسبوك" },
+        { icon: faInstagram, href: "https://www.instagram.com/bouayach.mohamed/", label: "انستغرام" },
+        
     ];
 
-    const contactInfo = [
-        { icon: faEnvelope, text: "contact@mawdha.com" },
-        { icon: faPhone, text: "+966 50 123 4567" },
-        { icon: faMapMarkerAlt, text: "المملكة العربية السعودية" }
-    ];
+
 
     return (
         <footer className="relative bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 pt-16 pb-8 overflow-hidden">
