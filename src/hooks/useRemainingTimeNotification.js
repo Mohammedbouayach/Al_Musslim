@@ -4,18 +4,15 @@ import moment from 'moment';
 
 export const useRemainingTimeNotification = (timings, enabled = true) => {
   useEffect(() => {
-    // التحقق من الشروط
     if (!enabled) return;
     if (typeof window === 'undefined') return;
-    if (!('Notification' in window)) return;
+    if (!('serviceWorker' in navigator)) return;
     if (Notification.permission !== 'granted') return;
     if (!timings || timings.Fajr === '00:00') return;
 
-    // التحقق من الإعداد في localStorage
     const autoNotifyEnabled = localStorage.getItem('autoNotifyEnabled') === 'true';
     if (!autoNotifyEnabled) return;
 
-    // حساب الصلاة القادمة
     const prayersArray = [
       { key: 'Fajr', displayName: 'الفجر' },
       { key: 'Dhuhr', displayName: 'الظهر' },
@@ -27,7 +24,6 @@ export const useRemainingTimeNotification = (timings, enabled = true) => {
     const momentNow = moment();
     let nextPrayerIndex = 0;
 
-    // تحديد الصلاة القادمة
     if (momentNow.isAfter(moment(timings.Fajr, 'HH:mm')) && momentNow.isBefore(moment(timings.Dhuhr, 'HH:mm'))) {
       nextPrayerIndex = 1;
     } else if (momentNow.isAfter(moment(timings.Dhuhr, 'HH:mm')) && momentNow.isBefore(moment(timings.Asr, 'HH:mm'))) {
@@ -41,7 +37,6 @@ export const useRemainingTimeNotification = (timings, enabled = true) => {
     const nextPrayer = prayersArray[nextPrayerIndex];
     const nextPrayerTime = timings[nextPrayer.key];
 
-    // حساب الوقت المتبقي
     let remainingTime = moment(nextPrayerTime, 'HH:mm').diff(momentNow);
     if (nextPrayerIndex === 0) {
       remainingTime =
@@ -53,7 +48,6 @@ export const useRemainingTimeNotification = (timings, enabled = true) => {
     const hours = duration.hours();
     const minutes = duration.minutes();
 
-    // تنسيق النص
     let timeText = '';
     if (hours > 0 && minutes > 0) {
       timeText = `${hours} ساعة و ${minutes} دقيقة`;
@@ -63,31 +57,50 @@ export const useRemainingTimeNotification = (timings, enabled = true) => {
       timeText = `${minutes} دقيقة`;
     }
 
-    // التحقق من عدم إرسال نفس الإشعار مرتين
     const lastNotifKey = `last-remaining-time-notif`;
     const lastNotifTime = localStorage.getItem(lastNotifKey);
     const currentMinute = momentNow.format('YYYY-MM-DD HH:mm');
 
     if (lastNotifTime === currentMinute) {
-      console.log('⏭️ تم إرسال الإشعار مسبقاً في هذه الدقيقة');
+      console.log('⏭️ تم إرسال الإشعار مسبقاً');
       return;
     }
 
-    // إرسال الإشعار بعد تأخير بسيط
-    const timer = setTimeout(() => {
+    // ⚠️ إرسال للـ Service Worker بدلاً من JavaScript
+    const timer = setTimeout(async () => {
       try {
-        new Notification(`⏰ الصلاة القادمة: ${nextPrayer.displayName}`, {
-          body: `باقي ${timeText} على وقت ${nextPrayer.displayName}\nالوقت: ${nextPrayerTime}`,
-          icon: '/icon-192x192.png',
-          badge: '/icon-192x192.png',
-          tag: 'remaining-time',
-          silent: false,
-          requireInteraction: false,
-        });
+        if (!navigator.serviceWorker.controller) {
+          console.warn('⚠️ SW غير نشط، سيتم المحاولة لاحقاً');
+          return;
+        }
 
-        // حفظ وقت الإشعار
-        localStorage.setItem(lastNotifKey, currentMinute);
-        console.log('✅ تم إرسال إشعار الوقت المتبقي:', timeText);
+        const registration = await navigator.serviceWorker.ready;
+        
+        // ⚠️ إرسال رسالة للـ SW لإظهار الإشعار
+        const messageChannel = new MessageChannel();
+        
+        registration.active.postMessage(
+          {
+            type: 'SHOW_REMAINING_TIME',
+            prayerName: nextPrayer.displayName,
+            timeText: timeText,
+            prayerTime: nextPrayerTime,
+          },
+          [messageChannel.port2]
+        );
+
+        messageChannel.port1.onmessage = (event) => {
+          if (event.data.success) {
+            localStorage.setItem(lastNotifKey, currentMinute);
+            console.log('✅ تم إرسال إشعار الوقت المتبقي من SW:', timeText);
+          }
+        };
+
+        // Timeout
+        setTimeout(() => {
+          console.log('⏱️ انتهت مهلة انتظار رد SW');
+        }, 3000);
+
       } catch (error) {
         console.error('❌ خطأ في إرسال الإشعار:', error);
       }

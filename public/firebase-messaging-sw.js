@@ -19,7 +19,6 @@ let checkInterval = null;
 
 console.log('🕌 Prayer SW loaded');
 
-// Install & Activate
 self.addEventListener('install', (event) => {
   console.log('📦 Installing...');
   self.skipWaiting();
@@ -31,38 +30,42 @@ self.addEventListener('activate', (event) => {
 });
 
 // ============================================
-// استقبال أوقات الصلاة
+// استقبال الرسائل
 // ============================================
 self.addEventListener('message', (event) => {
   if (event.data?.type === 'SET_PRAYER_TIMINGS') {
     prayerTimings = event.data.timings;
     console.log('📅 Prayer times:', prayerTimings);
     
-    // إيقاف الفحص القديم
     if (checkInterval) {
       clearInterval(checkInterval);
       console.log('🛑 Stopped old interval');
     }
     
-    // ⚠️ بدء فحص دوري كل دقيقة
     checkInterval = setInterval(() => {
       checkPrayerTime();
-    }, 60000); // كل 60 ثانية
+    }, 60000);
     
-    console.log('✅ Started new interval - checking every 60 seconds');
-    
-    // فحص فوري
+    console.log('✅ Started new interval');
     checkPrayerTime();
     
-    // رد على الرسالة
     if (event.ports && event.ports[0]) {
       event.ports[0].postMessage({ success: true });
     }
   }
   
-  // Keep-alive ping
+  // ⚠️ رسالة جديدة: إشعار الوقت المتبقي
+  if (event.data?.type === 'SHOW_REMAINING_TIME') {
+    const { prayerName, timeText, prayerTime } = event.data;
+    showRemainingTimeNotification(prayerName, timeText, prayerTime);
+    
+    if (event.ports && event.ports[0]) {
+      event.ports[0].postMessage({ success: true });
+    }
+  }
+  
   if (event.data?.type === 'KEEP_ALIVE') {
-    console.log('💓 Keep-alive ping received');
+    console.log('💓 Keep-alive');
   }
 });
 
@@ -75,16 +78,12 @@ function checkPrayerTime() {
   const minutes = now.getMinutes().toString().padStart(2, '0');
   const currentTime = hours + ':' + minutes;
   
-  console.log('🕐 Checking time:', currentTime, '| Prayer times:', prayerTimings);
+  console.log('🕐 Checking time:', currentTime);
   
   const prayers = {
-    Fajr: 'الفجر',
-    Dhuhr: 'الظهر',
-    Asr: 'العصر',
-    Sunset: 'المغرب',
-    Isha: 'العشاء',
-    Lastthird: 'السحور',
-    Imsak: 'الإمساك',
+    Fajr: 'الفجر', Dhuhr: 'الظهر', Asr: 'العصر',
+    Sunset: 'المغرب', Isha: 'العشاء',
+    Lastthird: 'السحور', Imsak: 'الإمساك',
   };
 
   for (const [key, name] of Object.entries(prayers)) {
@@ -96,10 +95,10 @@ function checkPrayerTime() {
 }
 
 // ============================================
-// إظهار الإشعار
+// إظهار إشعار الصلاة
 // ============================================
 function showPrayerNotification(prayerName, time) {
-  console.log('🔔 Showing notification for:', prayerName, 'at', time);
+  console.log('🔔 Showing notification for:', prayerName);
   
   const title = '🕌 حان وقت صلاة ' + prayerName;
   const options = {
@@ -109,21 +108,36 @@ function showPrayerNotification(prayerName, time) {
     tag: 'prayer-' + prayerName + '-' + Date.now(),
     requireInteraction: true,
     vibrate: [300, 100, 300, 100, 300],
-    data: { 
-      url: '/salah', 
-      time: time, 
-      prayer: prayerName 
-    },
+    data: { url: '/salah', time: time, prayer: prayerName },
     silent: false,
   };
   
   self.registration.showNotification(title, options)
-    .then(() => {
-      console.log('✅ Notification shown successfully!');
-    })
-    .catch((error) => {
-      console.error('❌ Failed to show notification:', error);
-    });
+    .then(() => console.log('✅ Prayer notification shown!'))
+    .catch((error) => console.error('❌ Failed:', error));
+}
+
+// ============================================
+// ⚠️ إظهار إشعار الوقت المتبقي (من SW)
+// ============================================
+function showRemainingTimeNotification(prayerName, timeText, prayerTime) {
+  console.log('⏰ Showing remaining time notification:', prayerName, timeText);
+  
+  const title = '⏰ الصلاة القادمة: ' + prayerName;
+  const options = {
+    body: 'باقي ' + timeText + ' على وقت ' + prayerName + '\nالوقت: ' + prayerTime,
+    icon: '/icon-192x192.png',
+    badge: '/icon-192x192.png',
+    tag: 'remaining-time-' + Date.now(),
+    requireInteraction: false,
+    vibrate: [200, 100, 200],
+    data: { url: '/salah', prayer: prayerName },
+    silent: false,
+  };
+  
+  self.registration.showNotification(title, options)
+    .then(() => console.log('✅ Remaining time notification shown!'))
+    .catch((error) => console.error('❌ Failed:', error));
 }
 
 // ============================================
@@ -151,7 +165,7 @@ self.addEventListener('notificationclick', (event) => {
 });
 
 // ============================================
-// رسائل Firebase في الخلفية
+// رسائل Firebase
 // ============================================
 messaging.onBackgroundMessage((payload) => {
   console.log('📬 Firebase message:', payload);
@@ -168,9 +182,6 @@ messaging.onBackgroundMessage((payload) => {
   self.registration.showNotification(title, options);
 });
 
-// ============================================
-// ⚠️ فحص دوري احتياطي (يعمل حتى لو لم تُرسل رسالة)
-// ============================================
 setInterval(() => {
   if (Object.keys(prayerTimings).length > 0) {
     checkPrayerTime();
