@@ -29,9 +29,6 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(self.clients.claim());
 });
 
-// ============================================
-// استقبال الرسائل
-// ============================================
 self.addEventListener('message', (event) => {
   if (event.data?.type === 'SET_PRAYER_TIMINGS') {
     prayerTimings = event.data.timings;
@@ -54,7 +51,6 @@ self.addEventListener('message', (event) => {
     }
   }
   
-  // ⚠️ رسالة جديدة: إشعار الوقت المتبقي
   if (event.data?.type === 'SHOW_REMAINING_TIME') {
     const { prayerName, timeText, prayerTime } = event.data;
     showRemainingTimeNotification(prayerName, timeText, prayerTime);
@@ -69,9 +65,6 @@ self.addEventListener('message', (event) => {
   }
 });
 
-// ============================================
-// فحص وقت الصلاة
-// ============================================
 function checkPrayerTime() {
   const now = new Date();
   const hours = now.getHours().toString().padStart(2, '0');
@@ -95,7 +88,7 @@ function checkPrayerTime() {
 }
 
 // ============================================
-// إظهار إشعار الصلاة
+// ⚠️ إشعار الصلاة - أولوية عالية
 // ============================================
 function showPrayerNotification(prayerName, time) {
   console.log('🔔 Showing notification for:', prayerName);
@@ -105,20 +98,53 @@ function showPrayerNotification(prayerName, time) {
     body: 'الوقت: ' + time + '\nالصلاة خير من النوم 🤲',
     icon: '/icon-192x192.png',
     badge: '/icon-192x192.png',
-    tag: 'prayer-' + prayerName + '-' + Date.now(),
-    requireInteraction: true,
-    vibrate: [300, 100, 300, 100, 300],
-    data: { url: '/salah', time: time, prayer: prayerName },
-    silent: false,
+    
+    // ⚠️ إعدادات للظهور المنبثق على Android
+    tag: 'prayer-' + Date.now(), // tag فريد في كل مرة
+    requireInteraction: true, // يبقى حتى يتفاعل المستخدم
+    silent: false, // صوت مفعّل
+    vibrate: [500, 200, 500, 200, 500], // اهتزاز قوي
+    
+    // ⚠️ أولوية عالية (مهم جداً للـ Android)
+    // هذا غير رسمي لكن بعض المتصفحات تستخدمه
+    priority: 'high',
+    
+    // بيانات إضافية
+    data: { 
+      url: '/salah', 
+      time: time, 
+      prayer: prayerName,
+      timestamp: Date.now(),
+    },
+    
+    // ⚠️ أزرار تفاعلية (تزيد الأولوية)
+    actions: [
+      {
+        action: 'open',
+        title: '👁️ فتح التطبيق',
+      },
+      {
+        action: 'dismiss',
+        title: '✕ إغلاق',
+      }
+    ],
+    
+    // صورة كبيرة (اختياري - يزيد الوضوح)
+    image: '/icon-192x192.png',
   };
   
   self.registration.showNotification(title, options)
-    .then(() => console.log('✅ Prayer notification shown!'))
+    .then(() => {
+      console.log('✅ Prayer notification shown!');
+      
+      // ⚠️ تشغيل صوت إضافي (اختياري)
+      // يمكن إضافة ملف صوت لاحقاً
+    })
     .catch((error) => console.error('❌ Failed:', error));
 }
 
 // ============================================
-// ⚠️ إظهار إشعار الوقت المتبقي (من SW)
+// ⚠️ إشعار الوقت المتبقي - أولوية عالية
 // ============================================
 function showRemainingTimeNotification(prayerName, timeText, prayerTime) {
   console.log('⏰ Showing remaining time notification:', prayerName, timeText);
@@ -128,35 +154,65 @@ function showRemainingTimeNotification(prayerName, timeText, prayerTime) {
     body: 'باقي ' + timeText + ' على وقت ' + prayerName + '\nالوقت: ' + prayerTime,
     icon: '/icon-192x192.png',
     badge: '/icon-192x192.png',
-    tag: 'remaining-time-' + Date.now(),
-    requireInteraction: false,
-    vibrate: [200, 100, 200],
-    data: { url: '/salah', prayer: prayerName },
+    
+    // ⚠️ إعدادات للظهور المنبثق
+    tag: 'remaining-' + Date.now(),
+    requireInteraction: false, // يختفي تلقائياً
     silent: false,
+    vibrate: [300, 100, 300], // اهتزاز متوسط
+    
+    // ⚠️ أولوية عالية
+    priority: 'high',
+    
+    data: { 
+      url: '/salah', 
+      prayer: prayerName,
+      timestamp: Date.now(),
+    },
+    
+    // ⚠️ أزرار
+    actions: [
+      {
+        action: 'open',
+        title: '📱 فتح',
+      }
+    ],
+    
+    // صورة
+    image: '/icon-192x192.png',
   };
   
   self.registration.showNotification(title, options)
-    .then(() => console.log('✅ Remaining time notification shown!'))
+    .then(() => {
+      console.log('✅ Remaining time notification shown!');
+    })
     .catch((error) => console.error('❌ Failed:', error));
 }
 
 // ============================================
-// النقر على الإشعار
+// التعامل مع النقر على الإشعار
 // ============================================
 self.addEventListener('notificationclick', (event) => {
-  console.log('🔔 Notification clicked');
+  console.log('🔔 Notification clicked, action:', event.action);
   event.notification.close();
+  
+  // إذا ضغط "dismiss" لا تفعل شيء
+  if (event.action === 'dismiss') {
+    return;
+  }
   
   const url = event.notification.data?.url || '/salah';
   
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true })
       .then((clientList) => {
+        // البحث عن نافذة مفتوحة
         for (const client of clientList) {
           if (client.url.includes(url) && 'focus' in client) {
             return client.focus();
           }
         }
+        // فتح نافذة جديدة
         if (clients.openWindow) {
           return clients.openWindow(url);
         }
@@ -164,9 +220,6 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
-// ============================================
-// رسائل Firebase
-// ============================================
 messaging.onBackgroundMessage((payload) => {
   console.log('📬 Firebase message:', payload);
   
@@ -175,8 +228,12 @@ messaging.onBackgroundMessage((payload) => {
     body: payload.notification?.body || '',
     icon: payload.notification?.icon || '/icon-192x192.png',
     badge: '/icon-192x192.png',
-    data: payload.data || {},
+    tag: 'firebase-' + Date.now(),
     requireInteraction: true,
+    silent: false,
+    vibrate: [300, 100, 300],
+    priority: 'high',
+    data: payload.data || {},
   };
   
   self.registration.showNotification(title, options);
