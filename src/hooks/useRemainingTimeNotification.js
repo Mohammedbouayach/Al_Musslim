@@ -13,6 +13,15 @@ export const useRemainingTimeNotification = (timings, enabled = true) => {
     const autoNotifyEnabled = localStorage.getItem('autoNotifyEnabled') === 'true';
     if (!autoNotifyEnabled) return;
 
+    // ⚠️ التحقق من Session - إشعار واحد فقط في كل جلسة
+    const sessionKey = 'notificationShownThisSession';
+    const alreadyShown = sessionStorage.getItem(sessionKey);
+    
+    if (alreadyShown === 'true') {
+      console.log('⏭️ تم إرسال الإشعار مسبقاً في هذه الجلسة');
+      return;
+    }
+
     const prayersArray = [
       { key: 'Fajr', displayName: 'الفجر' },
       { key: 'Dhuhr', displayName: 'الظهر' },
@@ -57,26 +66,15 @@ export const useRemainingTimeNotification = (timings, enabled = true) => {
       timeText = `${minutes} دقيقة`;
     }
 
-    const lastNotifKey = `last-remaining-time-notif`;
-    const lastNotifTime = localStorage.getItem(lastNotifKey);
-    const currentMinute = momentNow.format('YYYY-MM-DD HH:mm');
-
-    if (lastNotifTime === currentMinute) {
-      console.log('⏭️ تم إرسال الإشعار مسبقاً');
-      return;
-    }
-
-    // ⚠️ إرسال للـ Service Worker بدلاً من JavaScript
+    // إرسال للـ Service Worker
     const timer = setTimeout(async () => {
       try {
         if (!navigator.serviceWorker.controller) {
-          console.warn('⚠️ SW غير نشط، سيتم المحاولة لاحقاً');
+          console.warn('⚠️ SW غير نشط');
           return;
         }
 
         const registration = await navigator.serviceWorker.ready;
-        
-        // ⚠️ إرسال رسالة للـ SW لإظهار الإشعار
         const messageChannel = new MessageChannel();
         
         registration.active.postMessage(
@@ -91,18 +89,18 @@ export const useRemainingTimeNotification = (timings, enabled = true) => {
 
         messageChannel.port1.onmessage = (event) => {
           if (event.data.success) {
-            localStorage.setItem(lastNotifKey, currentMinute);
-            console.log('✅ تم إرسال إشعار الوقت المتبقي من SW:', timeText);
+            // ⚠️ حفظ في sessionStorage (يُمسح عند إغلاق التطبيق)
+            sessionStorage.setItem(sessionKey, 'true');
+            console.log('✅ تم إرسال إشعار الوقت المتبقي:', timeText);
           }
         };
 
-        // Timeout
         setTimeout(() => {
-          console.log('⏱️ انتهت مهلة انتظار رد SW');
+          console.log('⏱️ انتهت مهلة الانتظار');
         }, 3000);
 
       } catch (error) {
-        console.error('❌ خطأ في إرسال الإشعار:', error);
+        console.error('❌ خطأ:', error);
       }
     }, 2000);
 
