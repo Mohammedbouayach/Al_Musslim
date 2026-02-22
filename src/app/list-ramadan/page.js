@@ -3,465 +3,325 @@
 import { useState, useEffect } from "react";
 import Landing from "@/components/Layout/Landing";
 import SplashScreen from "@/components/Layout/SplashScreen";
-
-// import moment from "moment";
 import moment from 'moment-hijri';
 import { useRamadan } from "@/context/ramadanContext";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faClose, faLock } from "@fortawesome/free-solid-svg-icons";
+import { faLock, faChevronDown, faChevronUp, faMoon, faStar } from "@fortawesome/free-solid-svg-icons";
 
+// ── تاريخ بداية رمضان 1447هـ ثابت: 19 فبراير 2026 ──
+const RAMADAN_START = new Date(2026, 1, 19);
+const RAMADAN_TOTAL = 30;
+
+const SECTIONS = [
+    {
+        key: "prayers",
+        label: "🕌 الصلوات المفروضة",
+        color: "blue",
+        items: ["الفجر", "الظهر", "العصر", "المغرب", "العشاء"],
+    },
+    {
+        key: "nawafil",
+        label: "🌙 النوافل",
+        color: "indigo",
+        items: (day) => [
+            "2 قبل الفجر", "4 قبل الظهر", "2 بعد الظهر",
+            "2 بعد المغرب", "2 بعد العشاء", "الوتر", "تراويح (20 ركعة)",
+            ...(day >= 21 ? ["قيام ليلة القدر"] : []),
+        ],
+    },
+    {
+        key: "dhikr",
+        label: "📿 الأذكار",
+        color: "teal",
+        items: [
+            "أذكار الصباح", "أذكار المساء", "أذكار بعد الصلاة", "دعاء الإفطار",
+            "استغفار (100x)", "تسبيح (100x)", "صلاة على النبي (100x)",
+        ],
+    },
+    {
+        key: "quran",
+        label: "📖 القرآن الكريم",
+        color: "emerald",
+        items: (day) => [
+            `جزء يومي (جزء ${day})`,
+            "تدبر الآيات",
+            ...(day === 30 ? ["🎉 ختم القرآن"] : []),
+        ],
+    },
+    {
+        key: "deeds",
+        label: "💛 الأعمال الصالحة",
+        color: "amber",
+        items: (day) => [
+            "إفطار صائم", "صدقة يومية", "بر الوالدين", "صلة الرحم", "دعوة إلى الخير",
+            ...(day >= 21 ? ["اعتكاف", "زكاة الفطر"] : []),
+        ],
+    },
+];
+
+const colorMap = {
+    blue:    { bg: "bg-blue-50 dark:bg-blue-950/30",     border: "border-blue-200 dark:border-blue-800",     header: "bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200"     },
+    indigo:  { bg: "bg-indigo-50 dark:bg-indigo-950/30", border: "border-indigo-200 dark:border-indigo-800", header: "bg-indigo-100 dark:bg-indigo-900/50 text-indigo-800 dark:text-indigo-200" },
+    teal:    { bg: "bg-teal-50 dark:bg-teal-950/30",     border: "border-teal-200 dark:border-teal-800",     header: "bg-teal-100 dark:bg-teal-900/50 text-teal-800 dark:text-teal-200"     },
+    emerald: { bg: "bg-emerald-50 dark:bg-emerald-950/30", border: "border-emerald-200 dark:border-emerald-800", header: "bg-emerald-100 dark:bg-emerald-900/50 text-emerald-800 dark:text-emerald-200" },
+    amber:   { bg: "bg-amber-50 dark:bg-amber-950/30",   border: "border-amber-200 dark:border-amber-800",   header: "bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-200"   },
+};
+
+// ─── مكوّن قسم التحقق ───
+const CheckSection = ({ section, dayNumber, checks, onToggle }) => {
+    const items  = typeof section.items === "function" ? section.items(dayNumber) : section.items;
+    const colors = colorMap[section.color];
+    const done   = items.filter(item => checks[`day${dayNumber}-${item}`]).length;
+
+    return (
+        <div className={`rounded-xl border ${colors.border} ${colors.bg} overflow-hidden flex flex-col`}>
+            <div className={`px-3 py-2 flex items-center justify-between ${colors.header}`}>
+                <span className="font-semibold text-xs">{section.label}</span>
+                <span className="text-xs font-medium opacity-70">{done}/{items.length}</span>
+            </div>
+            <div className="p-3 flex flex-col gap-2 flex-1">
+                {items.map((item) => {
+                    const key     = `day${dayNumber}-${item}`;
+                    const checked = checks[key] || false;
+                    return (
+                        <label key={item} className="flex items-start gap-2 cursor-pointer group select-none">
+                            <input
+                                type="checkbox"
+                                className="mt-0.5 w-4 h-4 rounded flex-shrink-0 cursor-pointer accent-orange-500"
+                                checked={checked}
+                                onChange={(e) => onToggle(key, e.target.checked)}
+                            />
+                            <span className={`text-xs leading-snug transition-colors
+                                ${checked
+                                    ? "line-through text-gray-400 dark:text-gray-500"
+                                    : "text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white"
+                                }`}>
+                                {item}
+                            </span>
+                        </label>
+                    );
+                })}
+            </div>
+        </div>
+    );
+};
+
+// ─── بطاقة يوم واحد (accordion) ───
+const DayCard = ({ dayNumber, currentDay, checks, onToggle }) => {
+    const isLocked = dayNumber > currentDay;
+    const isToday  = dayNumber === currentDay;
+    const isLast10 = dayNumber >= 21;
+    const [open, setOpen] = useState(isToday);
+
+    const allItems  = SECTIONS.flatMap(s => typeof s.items === "function" ? s.items(dayNumber) : s.items);
+    const doneCount = allItems.filter(item => checks[`day${dayNumber}-${item}`]).length;
+    const progress  = allItems.length ? Math.round((doneCount / allItems.length) * 100) : 0;
+
+    return (
+        <div className={[
+            "rounded-2xl border overflow-hidden transition-all duration-200",
+            isToday  ? "border-orange-400 shadow-md shadow-orange-100 dark:shadow-orange-900/30" : "border-gray-200 dark:border-gray-700",
+            isLast10 ? "bg-gradient-to-br from-yellow-50/80 to-amber-50/80 dark:from-yellow-950/20 dark:to-amber-950/20" : "bg-white dark:bg-gray-900",
+        ].join(" ")}>
+
+            {/* ── رأس البطاقة ── */}
+            <button
+                onClick={() => !isLocked && setOpen(o => !o)}
+                disabled={isLocked}
+                className={[
+                    "w-full text-right flex items-center gap-4 px-5 py-4 transition-colors",
+                    isLocked ? "cursor-not-allowed" : "cursor-pointer hover:bg-orange-50/60 dark:hover:bg-white/5",
+                ].join(" ")}
+            >
+                {/* دائرة رقم اليوم */}
+                <div className={[
+                    "flex-shrink-0 w-13 h-13 w-14 h-14 rounded-2xl flex flex-col items-center justify-center text-white font-bold shadow-sm",
+                    isLast10 ? "bg-gradient-to-br from-yellow-500 to-orange-500" : "bg-gradient-to-br from-orange-700 to-orange-500",
+                ].join(" ")} style={{ minWidth: "3.25rem", minHeight: "3.25rem" }}>
+                    <span className="text-xl leading-none">{dayNumber}</span>
+                    <span className="text-[9px] opacity-80 leading-none mt-0.5">رمضان</span>
+                </div>
+
+                {/* المعلومات والشريط */}
+                <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2 mb-2">
+                        <span className="font-bold text-gray-800 dark:text-white text-sm">
+                            اليوم {dayNumber} من رمضان
+                        </span>
+                        {isToday && (
+                            <span className="px-2 py-0.5 bg-orange-500 text-white text-xs rounded-full">اليوم</span>
+                        )}
+                        {isLast10 && (
+                            <span className="px-2 py-0.5 bg-yellow-400 text-yellow-900 text-xs rounded-full">✨ العشر الأواخر</span>
+                        )}
+                        {isLocked && (
+                            <span className="px-2 py-0.5 bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-xs rounded-full flex items-center gap-1">
+                                <FontAwesomeIcon icon={faLock} className="text-[9px]" />
+                                مقفل
+                            </span>
+                        )}
+                    </div>
+                    {!isLocked && (
+                        <div className="flex items-center gap-3">
+                            <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
+                                <div
+                                    className={`h-2 rounded-full transition-all duration-500 ${progress === 100 ? "bg-green-500" : "bg-orange-500"}`}
+                                    style={{ width: `${progress}%` }}
+                                />
+                            </div>
+                            <span className={`text-xs font-bold flex-shrink-0 ${progress === 100 ? "text-green-600" : "text-orange-500"}`}>
+                                {progress}%
+                            </span>
+                            <span className="text-xs text-gray-400 flex-shrink-0">
+                                {doneCount}/{allItems.length}
+                            </span>
+                        </div>
+                    )}
+                </div>
+
+                {!isLocked && (
+                    <FontAwesomeIcon
+                        icon={open ? faChevronUp : faChevronDown}
+                        className="flex-shrink-0 text-gray-400 text-sm"
+                    />
+                )}
+            </button>
+
+            {/* ── محتوى قابل للطي ── */}
+            {open && !isLocked && (
+                <div className="border-t border-gray-100 dark:border-gray-800 px-5 py-5">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
+                        {SECTIONS.map(section => (
+                            <CheckSection
+                                key={section.key}
+                                section={section}
+                                dayNumber={dayNumber}
+                                checks={checks}
+                                onToggle={onToggle}
+                            />
+                        ))}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
+// ─── الصفحة الرئيسية ───
 export default function Page() {
-    const { ramadan } = useRamadan();
-
-    const [checks, setChecks] = useState({});
-
+    const { ramadan }                   = useRamadan();
+    const [checks, setChecks]           = useState({});
     const [selectedDay, setSelectedDay] = useState("all");
+    const [isLoading, setIsLoading]     = useState(true);
+    const [currentDay, setCurrentDay]   = useState(1);
 
-    const [ramadanInfo, setRamadanInfo] = useState({
-        start: null,
-        end: null,
-        totalDays: 30,
-    });
-
-    const [isLoading, setIsLoading] = useState(true);
-
-    const [location, setLocation] = useState({
-        lat: "30.0444",
-        lng: "31.2357",
-    });
+    const calcCurrentDay = () => {
+        const today = new Date(); today.setHours(0, 0, 0, 0);
+        const start = new Date(RAMADAN_START); start.setHours(0, 0, 0, 0);
+        const diff  = Math.floor((today - start) / (1000 * 60 * 60 * 24)) + 1;
+        return Math.max(1, Math.min(diff, RAMADAN_TOTAL));
+    };
 
     useEffect(() => {
-        const getLocation = () => {
-            const storedLat = localStorage.getItem("latitude");
-            const storedLng = localStorage.getItem("longitude");
-
-            if (storedLat && storedLng) {
-                setLocation({ lat: storedLat, lng: storedLng });
-                return;
-            }
-
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    (position) => {
-                        const newLocation = {
-                            lat: position.coords.latitude.toString(),
-                            lng: position.coords.longitude.toString(),
-                        };
-                        setLocation(newLocation);
-                        localStorage.setItem("latitude", newLocation.lat);
-                        localStorage.setItem("longitude", newLocation.lng);
-                    },
-                    () => {
-                        localStorage.setItem("latitude", location.lat);
-                        localStorage.setItem("longitude", location.lng);
-                    }
-                );
-            }
-        };
-
-        getLocation();
-    }, [location.lat, location.lng]);
-
-    useEffect(() => {
-        const fetchRamadanDates = async () => {
-            try {
-                const currentYear = new Date().getFullYear();
-                const apiUrl = `https://api.aladhan.com/v1/calendar?latitude=${location.lat}&longitude=${location.lng}&year=${currentYear}&method=2`;
-
-                const response = await fetch(apiUrl);
-                if (!response.ok) throw new Error('فشل جلب البيانات');
-                const { data } = await response.json();
-
-                const ramadanDays = data.filter(monthData => monthData.date.hijri.month.number === 9)
-
-                if (ramadanDays.length > 0) {
-                    const firstDay = moment(ramadanDays[0].date.gregorian.date, "DD-MM-YYYY", true).toDate();
-                    const lastDay = moment(ramadanDays[ramadanDays.length - 1].date.gregorian.date, "DD-MM-YYYY", true).toDate();
-
-                    setRamadanInfo({
-                        start: firstDay,
-                        end: lastDay,
-                        totalDays: ramadanDays.length,
-                    });
-                }
-            } catch (error) {
-                console.error("Failed to fetch Ramadan dates:", error);
-                // Set default dates for 2025
-                setRamadanInfo({
-                    start: new Date(2026, 1, 18), // February 1, 2025
-                    end: new Date(2026, 3, 19),  // February 28, 2025
-                    totalDays: 29,
-                });
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        fetchRamadanDates();
-    }, [location]);
-
-
-
-    useEffect(() => {
-        const savedChecks = localStorage.getItem("ramadanChecks");
-        if (savedChecks) setChecks(JSON.parse(savedChecks));
+        const saved = localStorage.getItem("ramadanChecks");
+        if (saved) setChecks(JSON.parse(saved));
+        setCurrentDay(calcCurrentDay());
+        setIsLoading(false);
     }, []);
 
     useEffect(() => {
         localStorage.setItem("ramadanChecks", JSON.stringify(checks));
     }, [checks]);
 
-    const getCurrentRamadanDay = () => {
-        if (!ramadanInfo.start) return 1;
-        const today = new Date();
-        const diff = today.getTime() - ramadanInfo.start.getTime();
-        const day = Math.floor(diff / (1000 * 60 * 60 * 24)) + 1;
-        return Math.max(1, Math.min(day, ramadanInfo.totalDays));
-    };
-
-    const [currentRamadanDay, setCurrentRamadanDay] = useState(getCurrentRamadanDay());
-
-    useEffect(() => {
-        setCurrentRamadanDay(getCurrentRamadanDay());
-    }, [ramadanInfo.start]);
+    const toggleCheck = (key, value) => setChecks(prev => ({ ...prev, [key]: value }));
 
     if (isLoading) return <SplashScreen />;
-    if (!ramadan) return null;
+    if (!ramadan)  return null;
+
+    const visibleDays = selectedDay === "all"
+        ? [...Array(RAMADAN_TOTAL)].map((_, i) => i + 1)
+        : [Number(selectedDay)];
 
     return (
         <>
             <Landing title={`يومي في رمضان (${moment().iYear()} هـ - ${moment().year()} م)`} />
-            <div className="container mx-auto mb-5 px-2">
-                <div className="bg-orange-50 dark:bg-gray-700 p-4 rounded-lg mb-4">
-                    <h3 className="text-xl font-bold text-orange-800 dark:text-white">
-                        معلومات رمضان الحالية:
-                    </h3>
-                    <p className="text-orange-700 dark:text-white">
-                        البدء: {ramadanInfo.start ? moment(ramadanInfo.start).format("YYYY/MM/DD") : "غير معروف"}
-                        <br />
-                        الانتهاء: {ramadanInfo.end ? moment(ramadanInfo.end).format("YYYY/MM/DD") : "غير معروف"}
-                        <br />
-                        عدد الأيام: {ramadanInfo.totalDays}
-                    </p>
+
+            <div className="container mx-auto mb-10 px-3 max-w-5xl">
+
+                {/* ── Header ── */}
+                <div className="mt-5 bg-gradient-to-br from-orange-900 to-orange-600 text-white p-6 rounded-2xl shadow-xl mb-6">
+                    <div className="flex flex-col md:flex-row justify-between items-start gap-5">
+                        <div>
+                            <h2 className="text-3xl font-bold mb-1 flex items-center gap-2">
+                                <FontAwesomeIcon icon={faMoon} className="text-yellow-300" />
+                                رمضان المبارك 1447هـ
+                            </h2>
+                            <p className="text-orange-100 text-sm">
+                                البداية: الأربعاء 19 فبراير 2026 &nbsp;|&nbsp; النهاية: 19 مارس 2026
+                            </p>
+                            <p className="text-orange-200 text-sm mt-1">عدد الأيام: {RAMADAN_TOTAL} يوماً</p>
+                        </div>
+                        <div className="bg-white/15 backdrop-blur-sm px-8 py-4 rounded-2xl text-center border border-white/20 flex-shrink-0">
+                            <div className="text-5xl font-bold leading-none">{currentDay}</div>
+                            <div className="text-orange-200 mt-1 text-sm">اليوم الحالي</div>
+                            <div className="text-orange-300 text-xs mt-0.5">
+                                {moment().locale('ar').format('dddd، D MMMM')}
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div className="pb-8">
-                    <div className="flex gap-4 mb-4 p-3 rounded">
-                        <select
-                            value={selectedDay}
-                            onChange={(e) => setSelectedDay(e.target.value)}
-                            className="p-2 rounded border dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                        >
-                            <option value="all">كل الأيام</option>
-                            {[...Array(ramadanInfo.totalDays)].map((_, i) => (
-                                <option key={i} value={i + 1}>
-                                    يوم {i + 1}
-                                </option>
-                            ))}
-                        </select>
-                        <button
-                            onClick={() => setSelectedDay(getCurrentRamadanDay().toString())}
-                            className="px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700">
-                            انتقل لليوم الحالي
-                        </button>
-                    </div>
 
-                    <div className="overflow-x-auto rounded-sm shadow-sm border border-orange-50 dark:border-gray-700">
-                        <table className="w-full border-collapse text-sm md:text-base bg-white dark:bg-black whitespace-nowrap">
-                            <thead className="sticky top-0">
-                                <tr className="bg-orange-600 text-white text-center">
-                                    <span></span>
-                                    <th className="p-3 font-semibold border-b border-orange-500">اليوم</th>
-                                    <th className="p-3 font-semibold border-b border-orange-500">العبادات اليومية</th>
-                                    <th className="p-3 font-semibold border-b border-orange-500">النوافل</th>
-                                    <th className="p-3 font-semibold border-b border-orange-500">الأذكار</th>
-                                    <th className="p-3 font-semibold border-b border-orange-500">القرآن</th>
-                                    <th className="p-3 font-semibold border-b border-orange-500">الأعمال الصالحة</th>
-                                </tr>
-                            </thead>
+                {/* ── فلتر ── */}
+                <div className="flex flex-wrap gap-3 mb-5">
+                    <select
+                        value={selectedDay}
+                        onChange={(e) => setSelectedDay(e.target.value)}
+                        className="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+                    >
+                        <option value="all">📅 كل الأيام</option>
+                        {[...Array(RAMADAN_TOTAL)].map((_, i) => (
+                            <option key={i} value={i + 1}>يوم {i + 1}</option>
+                        ))}
+                    </select>
+                    <button
+                        onClick={() => setSelectedDay(currentDay.toString())}
+                        className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-xl text-sm font-medium transition-colors shadow-sm"
+                    >
+                        📍 اليوم الحالي
+                    </button>
+                    <button
+                        onClick={() => setSelectedDay("all")}
+                        className="px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-xl text-sm font-medium transition-colors shadow-sm"
+                    >
+                        عرض الكل
+                    </button>
+                </div>
 
-                            <tbody className="divide-y divide-orange-100 dark:divide-gray-500 whitespace-nowrap">
-                                {[...Array(ramadanInfo.totalDays)].map((_, i) => {
-                                    const dayNumber = i + 1;
-                                    if (selectedDay !== "all" && dayNumber !== Number(selectedDay)) return null;
+                {/* ── قائمة الأيام ── */}
+                <div className="flex flex-col gap-3">
+                    {visibleDays.map(dayNum => (
+                        <DayCard
+                            key={dayNum}
+                            dayNumber={dayNum}
+                            currentDay={currentDay}
+                            checks={checks}
+                            onToggle={toggleCheck}
+                        />
+                    ))}
+                </div>
 
-
-                                    return (
-                                        <tr
-                                            key={i}
-                                            className={`hover:bg-orange-50 relative ${i % 2 === 0 ? "bg-orange-50/30 dark:bg-gray-800" : "bg-white dark:bg-black"}`}
-                                        >
-                                            {
-                                                dayNumber > currentRamadanDay ?
-                                                    <span className="absolute z-10 flex items-center gap-3 justify-center top-0 w-full text-white h-full bg-black/60">
-                                                        يوم {dayNumber} - سيتم تفعيله عند دخول وقته
-                                                        <FontAwesomeIcon icon={faLock} />
-                                                    </span> : <span></span>
-                                            }
-                                            <td className="p-3 text-center font-medium text-orange-600 border-r dark:border-gray-500">
-                                                {dayNumber} رمضان
-                                            </td>
-
-
-                                            {/* الصلوات المفروضة */}
-                                            <td className="p-3 border-r dark:border-gray-500">
-                                                <div className="grid gap-2">
-                                                    {["الفجر", "الظهر", "العصر", "المغرب", "العشاء"].map((prayer) => (
-                                                        <div key={prayer} className="checkbox-wrapper-11 pe-5">
-                                                            <input
-                                                                id={`prayer-${prayer}-${dayNumber}`}
-                                                                type="checkbox"
-                                                                checked={checks[`day${dayNumber}-${prayer}`] || false}
-                                                                onChange={(e) =>
-                                                                    setChecks((prev) => ({
-                                                                        ...prev,
-                                                                        [`day${dayNumber}-${prayer}`]: e.target.checked,
-                                                                    }))
-                                                                }
-                                                            />
-                                                            <label htmlFor={`prayer-${prayer}-${dayNumber}`}>{prayer}</label>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </td>
-
-                                            {/* النوافل */}
-                                            <td className="p-3 border-r dark:border-gray-500">
-                                                <div className="grid gap-2">
-                                                    <div className="flex flex-col gap-1">
-                                                        <span className="text-xs text-orange-600 font-medium">رواتب اليوم</span>
-                                                        {["2 قبل الفجر", "4 قبل الظهر", "2 بعد الظهر", "2 بعد المغرب", "2 بعد العشاء", "الوتر"].map((n) => (
-                                                            <div key={n} className="checkbox-wrapper-11 pe-5">
-                                                                <input
-                                                                    id={`nawafil-${n}-${dayNumber}`}
-                                                                    type="checkbox"
-                                                                    checked={checks[`day${dayNumber}-${n}`] || false}
-                                                                    onChange={(e) =>
-                                                                        setChecks((prev) => ({
-                                                                            ...prev,
-                                                                            [`day${dayNumber}-${n}`]: e.target.checked,
-                                                                        }))
-                                                                    }
-                                                                />
-                                                                <label htmlFor={`nawafil-${n}-${dayNumber}`}>{n}</label>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                    <div className="mt-2 pt-2 border-t dark:border-gray-500">
-                                                        <div className="checkbox-wrapper-11 pe-5">
-                                                            <input
-                                                                id={`tarawih-${dayNumber}`}
-                                                                type="checkbox"
-                                                                checked={checks[`day${dayNumber}-تراويح`] || false}
-                                                                onChange={(e) =>
-                                                                    setChecks((prev) => ({
-                                                                        ...prev,
-                                                                        [`day${dayNumber}-تراويح`]: e.target.checked,
-                                                                    }))
-                                                                }
-                                                            />
-                                                            <label htmlFor={`tarawih-${dayNumber}`}>تراويح (20 ركعة)</label>
-                                                        </div>
-                                                        {dayNumber >= 20 && (
-                                                            <div className="checkbox-wrapper-11 pe-5">
-                                                                <input
-                                                                    id={`qiyam-${dayNumber}`}
-                                                                    type="checkbox"
-                                                                    checked={checks[`day${dayNumber}-قيام`] || false}
-                                                                    onChange={(e) =>
-                                                                        setChecks((prev) => ({
-                                                                            ...prev,
-                                                                            [`day${dayNumber}-قيام`]: e.target.checked,
-                                                                        }))
-                                                                    }
-                                                                />
-                                                                <label htmlFor={`qiyam-${dayNumber}`}>قيام ليلة القدر</label>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </td>
-
-                                            {/* الأذكار */}
-                                            <td className="p-3 border-r dark:border-gray-500">
-                                                <div className="grid gap-2">
-                                                    {["أذكار الصباح", "أذكار المساء", "أذكار بعد الصلاة", "دعاء الإفطار"].map((dhikr) => (
-                                                        <div key={dhikr} className="checkbox-wrapper-11 pe-5">
-                                                            <input
-                                                                id={`dhikr-${dhikr}-${dayNumber}`}
-                                                                type="checkbox"
-                                                                checked={checks[`day${dayNumber}-${dhikr}`] || false}
-                                                                onChange={(e) =>
-                                                                    setChecks((prev) => ({
-                                                                        ...prev,
-                                                                        [`day${dayNumber}-${dhikr}`]: e.target.checked,
-                                                                    }))
-                                                                }
-                                                            />
-                                                            <label htmlFor={`dhikr-${dhikr}-${dayNumber}`}>{dhikr}</label>
-                                                        </div>
-                                                    ))}
-                                                    <div className="mt-2 pt-2 border-t dark:border-gray-500">
-                                                        {["استغفار (100x)", "تسبيح (100x)", "صلاة على النبي (100x)"].map((dhikr) => (
-                                                            <div key={dhikr} className="checkbox-wrapper-11 pe-5">
-                                                                <input
-                                                                    id={`dhikr-extra-${dhikr}-${dayNumber}`}
-                                                                    type="checkbox"
-                                                                    checked={checks[`day${dayNumber}-${dhikr}`] || false}
-                                                                    onChange={(e) =>
-                                                                        setChecks((prev) => ({
-                                                                            ...prev,
-                                                                            [`day${dayNumber}-${dhikr}`]: e.target.checked,
-                                                                        }))
-                                                                    }
-                                                                />
-                                                                <label htmlFor={`dhikr-extra-${dhikr}-${dayNumber}`}>{dhikr}</label>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            </td>
-
-                                            {/* القرآن */}
-                                            <td className="p-3 border-r dark:border-gray-500">
-                                                <div className="grid gap-2">
-                                                    <div className="checkbox-wrapper-11 pe-5">
-                                                        <input
-                                                            id={`quran-juz-${dayNumber}`}
-                                                            type="checkbox"
-                                                            checked={checks[`day${dayNumber}-جزء`] || false}
-                                                            onChange={(e) =>
-                                                                setChecks((prev) => ({
-                                                                    ...prev,
-                                                                    [`day${dayNumber}-جزء`]: e.target.checked,
-                                                                }))
-                                                            }
-                                                        />
-                                                        <label htmlFor={`quran-juz-${dayNumber}`}>جزء يومي</label>
-                                                    </div>
-                                                    <div className="checkbox-wrapper-11 pe-5">
-                                                        <input
-                                                            id={`quran-tadabbur-${dayNumber}`}
-                                                            type="checkbox"
-                                                            checked={checks[`day${dayNumber}-تدبر`] || false}
-                                                            onChange={(e) =>
-                                                                setChecks((prev) => ({
-                                                                    ...prev,
-                                                                    [`day${dayNumber}-تدبر`]: e.target.checked,
-                                                                }))
-                                                            }
-                                                        />
-                                                        <label htmlFor={`quran-tadabbur-${dayNumber}`}>تدبر الآيات</label>
-                                                    </div>
-                                                    {dayNumber === 30 && (
-                                                        <div className="checkbox-wrapper-11 pe-5">
-                                                            <input
-                                                                id={`quran-khatm-${dayNumber}`}
-                                                                type="checkbox"
-                                                                checked={checks[`day${dayNumber}-ختم`] || false}
-                                                                onChange={(e) =>
-                                                                    setChecks((prev) => ({
-                                                                        ...prev,
-                                                                        [`day${dayNumber}-ختم`]: e.target.checked,
-                                                                    }))
-                                                                }
-                                                            />
-                                                            <label htmlFor={`quran-khatm-${dayNumber}`} className="text-orange-700">
-                                                                ختم القرآن
-                                                            </label>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </td>
-
-                                            {/* الأعمال الصالحة */}
-                                            <td className="p-3 border-r dark:border-gray-500">
-                                                <div className="grid gap-2">
-                                                    {["إفطار صائم", "صدقة يومية", "بر الوالدين", "صلة الرحم"].map((deed) => (
-                                                        <div key={deed} className="checkbox-wrapper-11 pe-5">
-                                                            <input
-                                                                id={`deed-${deed}-${dayNumber}`}
-                                                                type="checkbox"
-                                                                checked={checks[`day${dayNumber}-${deed}`] || false}
-                                                                onChange={(e) =>
-                                                                    setChecks((prev) => ({
-                                                                        ...prev,
-                                                                        [`day${dayNumber}-${deed}`]: e.target.checked,
-                                                                    }))
-                                                                }
-                                                            />
-                                                            <label htmlFor={`deed-${deed}-${dayNumber}`}>{deed}</label>
-                                                        </div>
-                                                    ))}
-                                                    <div className="mt-2 pt-2 border-t dark:border-gray-500">
-                                                        {dayNumber >= 20 && (
-                                                            <>
-                                                                <div className="checkbox-wrapper-11 pe-5">
-                                                                    <input
-                                                                        id={`deed-itikaf-${dayNumber}`}
-                                                                        type="checkbox"
-                                                                        checked={checks[`day${dayNumber}-اعتكاف`] || false}
-                                                                        onChange={(e) =>
-                                                                            setChecks((prev) => ({
-                                                                                ...prev,
-                                                                                [`day${dayNumber}-اعتكاف`]: e.target.checked,
-                                                                            }))
-                                                                        }
-                                                                    />
-                                                                    <label htmlFor={`deed-itikaf-${dayNumber}`} className="text-orange-700">
-                                                                        اعتكاف
-                                                                    </label>
-                                                                </div>
-                                                                <div className="checkbox-wrapper-11 pe-5">
-                                                                    <input
-                                                                        id={`deed-zakat-${dayNumber}`}
-                                                                        type="checkbox"
-                                                                        checked={checks[`day${dayNumber}-زكاة`] || false}
-                                                                        onChange={(e) =>
-                                                                            setChecks((prev) => ({
-                                                                                ...prev,
-                                                                                [`day${dayNumber}-زكاة`]: e.target.checked,
-                                                                            }))
-                                                                        }
-                                                                    />
-                                                                    <label htmlFor={`deed-zakat-${dayNumber}`} className="text-orange-700">
-                                                                        زكاة الفطر
-                                                                    </label>
-                                                                </div>
-                                                            </>
-                                                        )}
-                                                        <div className="checkbox-wrapper-11 pe-5">
-                                                            <input
-                                                                id={`deed-dawah-${dayNumber}`}
-                                                                type="checkbox"
-                                                                checked={checks[`day${dayNumber}-دعوة`] || false}
-                                                                onChange={(e) =>
-                                                                    setChecks((prev) => ({
-                                                                        ...prev,
-                                                                        [`day${dayNumber}-دعوة`]: e.target.checked,
-                                                                    }))
-                                                                }
-                                                            />
-                                                            <label htmlFor={`deed-dawah-${dayNumber}`}>دعوة إلى الخير</label>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <div className="mt-8 p-4 bg-orange-50 text-orange-600 dark:bg-gray-700 dark:text-white rounded-sm">
-                        <h3 className="text-xl font-bold mb-3">ملاحظات هامة:</h3>
-                        <ul className="list-disc pr-4 space-y-2">
-                            <li>في العشر الأواخر: إحياء الليل - كثرة الدعاء - الاعتكاف</li>
-                            <li>الاجتهاد في الدعاء خاصة في أوقات الإجابة</li>
-                            <li>الإكثار من: (لا إله إلا الله - الاستغفار - الصلاة على النبي)</li>
-                            <li>التوبة النصوح وترك المعاصي</li>
-                        </ul>
-                    </div>
+                {/* ── ملاحظات ── */}
+                <div className="mt-8 p-5 bg-orange-50 dark:bg-gray-800 border border-orange-100 dark:border-gray-700 rounded-2xl">
+                    <h3 className="text-lg font-bold text-orange-800 dark:text-white mb-3 flex items-center gap-2">
+                        <FontAwesomeIcon icon={faStar} className="text-yellow-500" />
+                        ملاحظات هامة
+                    </h3>
+                    <ul className="space-y-2 text-sm text-orange-700 dark:text-orange-200 list-disc pr-5 leading-relaxed">
+                        <li>في العشر الأواخر (من اليوم 21): إحياء الليل - كثرة الدعاء - الاعتكاف</li>
+                        <li>الاجتهاد في الدعاء في أوقات الإجابة (السحر - عند الإفطار)</li>
+                        <li>الإكثار من: لا إله إلا الله - الاستغفار - الصلاة على النبي ﷺ</li>
+                        <li>التوبة النصوح وترك المعاصي في كل أيام الشهر الكريم</li>
+                    </ul>
                 </div>
             </div>
         </>

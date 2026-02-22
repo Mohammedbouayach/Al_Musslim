@@ -185,21 +185,7 @@ export default function Navbar() {
                 </div>
             </div>
 
-            {/* زينة رمضان */}
-            {ramadan && (
-                <div className="fixed top-16 right-2 z-40 animate-pulse md:right-4">
-                    <div className="relative">
-                        <Image
-                            src="/zena.png"
-                            width={120}
-                            height={100}
-                            alt="Ramadan decoration"
-                            className="transition-all duration-500 hover:scale-110 drop-shadow-lg"
-                        />
-                        <div className="absolute -top-2 -right-2 w-4 h-4 bg-yellow-400 rounded-full animate-ping"></div>
-                    </div>
-                </div>
-            )}
+      
         </>
     );
 }
