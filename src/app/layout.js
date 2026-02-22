@@ -8,6 +8,7 @@ import Script from "next/script";
 import { SWRProvider } from "@/components/Layout/SWRProvider";
 import { RamadanProvider } from "@/context/ramadanContext";
 import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
+import { Analytics } from "@vercel/analytics/next";
 
 const cairo = localFont({
     src: [
@@ -142,6 +143,7 @@ export default function RootLayout({ children }) {
                             <Footer />
                             <Buttons />
                         </main>
+                        <Analytics />
                     </body>
                 </RamadanProvider>
             </SWRProvider>
